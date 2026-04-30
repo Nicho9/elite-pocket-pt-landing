@@ -23,12 +23,21 @@ type UserProfile = {
 };
 
 type WorkoutSession = {
+  id: string;
   session_date: string | null;
   duration_minutes: number | null;
   avg_rpe: number | null;
   avg_heart_rate: number | null;
   status: string | null;
   photos: unknown;
+};
+
+type WorkoutExerciseLog = {
+  block: string | null;
+  display_name: string | null;
+  sets: number | string | null;
+  reps: number | string | null;
+  actual_result: unknown;
 };
 
 type NutritionLog = {
@@ -371,6 +380,99 @@ function getFirstPhotoUrl(photos: unknown): string | null {
   return getPhotoUrl(photos);
 }
 
+function getWorkoutExerciseBlock(exercise: WorkoutExerciseLog) {
+  return exercise.block || "Other";
+}
+
+function groupWorkoutExercisesByBlock(exercises: WorkoutExerciseLog[]) {
+  const groupedExercises = new Map<string, WorkoutExerciseLog[]>();
+
+  exercises.forEach((exercise) => {
+    const block = getWorkoutExerciseBlock(exercise);
+    const existingExercises = groupedExercises.get(block) || [];
+
+    existingExercises.push(exercise);
+    groupedExercises.set(block, existingExercises);
+  });
+
+  return Array.from(groupedExercises.entries());
+}
+
+function getPrescribedExerciseSummary(exercise: WorkoutExerciseLog) {
+  const sets = formatValue(exercise.sets);
+  const reps = formatValue(exercise.reps);
+
+  if (sets === "Not set" && reps === "Not set") {
+    return "Not set";
+  }
+
+  return `${sets} sets x ${reps} reps`;
+}
+
+function getActualResultSummary(actualResult: unknown) {
+  if (!actualResult) {
+    return "No result logged";
+  }
+
+  if (typeof actualResult === "string") {
+    const trimmedResult = actualResult.trim();
+
+    if (!trimmedResult) {
+      return "No result logged";
+    }
+
+    if (trimmedResult.startsWith("[") || trimmedResult.startsWith("{")) {
+      try {
+        return getActualResultSummary(JSON.parse(trimmedResult));
+      } catch {
+        return trimmedResult;
+      }
+    }
+
+    return trimmedResult;
+  }
+
+  const getSetSummary = (set: unknown, index: number) => {
+    if (!set || typeof set !== "object") {
+      return `Set ${index + 1}: ${formatValue(String(set))}`;
+    }
+
+    const setRecord = set as Record<string, unknown>;
+    const weight =
+      setRecord.weight_kg ||
+      setRecord.weight ||
+      setRecord.load_kg ||
+      setRecord.load ||
+      setRecord.actual_weight;
+    const rpe = setRecord.rpe || setRecord.actual_rpe;
+    const weightText = weight ? `${formatValue(String(weight))} kg` : "weight not logged";
+    const rpeText = rpe ? `RPE ${formatValue(String(rpe))}` : "RPE not logged";
+
+    return `Set ${index + 1}: ${weightText}, ${rpeText}`;
+  };
+
+  if (Array.isArray(actualResult)) {
+    return actualResult.map(getSetSummary).join(" · ");
+  }
+
+  if (typeof actualResult === "object") {
+    const resultRecord = actualResult as Record<string, unknown>;
+    const possibleSets =
+      resultRecord.sets ||
+      resultRecord.completed_sets ||
+      resultRecord.actual_sets ||
+      resultRecord.results;
+
+    if (Array.isArray(possibleSets)) {
+      return possibleSets.map(getSetSummary).join(" · ");
+    }
+
+    return getSetSummary(resultRecord, 0);
+  }
+
+  return formatValue(String(actualResult));
+}
+
 function StatusPill({ label, value }: { label: string; value: string | boolean | null }) {
   return (
     <div className="rounded-2xl border border-[#E5E7EB] bg-[#F8FAFC] px-4 py-3">
@@ -425,6 +527,16 @@ export default function AdminUserPage() {
   const [workoutSessions, setWorkoutSessions] = useState<WorkoutSession[]>([]);
   const [isLoadingWorkouts, setIsLoadingWorkouts] = useState(false);
   const [workoutErrorMessage, setWorkoutErrorMessage] = useState("");
+  const [expandedWorkoutSessionId, setExpandedWorkoutSessionId] = useState<string | null>(null);
+  const [workoutExercisesBySession, setWorkoutExercisesBySession] = useState<
+    Record<string, WorkoutExerciseLog[]>
+  >({});
+  const [loadingWorkoutExercisesSessionId, setLoadingWorkoutExercisesSessionId] = useState<
+    string | null
+  >(null);
+  const [workoutExercisesErrorBySession, setWorkoutExercisesErrorBySession] = useState<
+    Record<string, string>
+  >({});
   const [communityPosts, setCommunityPosts] = useState<CommunityPost[]>([]);
   const [isLoadingCommunity, setIsLoadingCommunity] = useState(false);
   const [communityErrorMessage, setCommunityErrorMessage] = useState("");
@@ -540,7 +652,7 @@ export default function AdminUserPage() {
           const { data: workoutData, error: workoutError } = await supabase
             .schema("public")
             .from("workout_generator_session_log")
-            .select("session_date,duration_minutes,avg_rpe,avg_heart_rate,status,photos")
+            .select("id,session_date,duration_minutes,avg_rpe,avg_heart_rate,status,photos")
             .eq("user_email", data.email)
             .gte("session_date", startDate)
             .lte("session_date", endDate)
@@ -556,6 +668,10 @@ export default function AdminUserPage() {
           } else {
             setWorkoutSessions(workoutData || []);
           }
+
+          setExpandedWorkoutSessionId(null);
+          setWorkoutExercisesBySession({});
+          setWorkoutExercisesErrorBySession({});
 
           setIsLoadingWorkouts(false);
 
@@ -627,6 +743,9 @@ export default function AdminUserPage() {
           setNutritionMealsErrorByDay({});
           setWorkoutSessions([]);
           setWorkoutErrorMessage("");
+          setExpandedWorkoutSessionId(null);
+          setWorkoutExercisesBySession({});
+          setWorkoutExercisesErrorBySession({});
           setCommunityPosts([]);
           setCommunityErrorMessage("");
           setProgressPhotos([]);
@@ -682,6 +801,45 @@ export default function AdminUserPage() {
     }
 
     setLoadingNutritionMealsDay(null);
+  }
+
+  async function handleWorkoutSessionClick(sessionId: string) {
+    const nextExpandedSessionId = expandedWorkoutSessionId === sessionId ? null : sessionId;
+    setExpandedWorkoutSessionId(nextExpandedSessionId);
+
+    if (!nextExpandedSessionId || workoutExercisesBySession[sessionId]) {
+      return;
+    }
+
+    setLoadingWorkoutExercisesSessionId(sessionId);
+    setWorkoutExercisesErrorBySession((currentErrors) => ({
+      ...currentErrors,
+      [sessionId]: "",
+    }));
+
+    const { data, error } = await supabase
+      .schema("public")
+      .from("workout_generator_exercise_log")
+      .select("block,display_name,sets,reps,actual_result")
+      .eq("session_log_id", sessionId);
+
+    if (error) {
+      setWorkoutExercisesErrorBySession((currentErrors) => ({
+        ...currentErrors,
+        [sessionId]: error.message,
+      }));
+      setWorkoutExercisesBySession((currentExercises) => ({
+        ...currentExercises,
+        [sessionId]: [],
+      }));
+    } else {
+      setWorkoutExercisesBySession((currentExercises) => ({
+        ...currentExercises,
+        [sessionId]: data || [],
+      }));
+    }
+
+    setLoadingWorkoutExercisesSessionId(null);
   }
 
   function getStoragePublicUrl(bucket: string, value: string | null | undefined) {
@@ -1096,65 +1254,151 @@ export default function AdminUserPage() {
                           "workout-session-media",
                           getFirstPhotoUrl(session.photos),
                         );
+                        const isExpanded = expandedWorkoutSessionId === session.id;
+                        const exercises = workoutExercisesBySession[session.id] || [];
+                        const exercisesError = workoutExercisesErrorBySession[session.id];
+                        const isLoadingExercises =
+                          loadingWorkoutExercisesSessionId === session.id;
 
                         return (
                           <article
-                            key={`${session.session_date || "session"}-${index}`}
-                            className="flex gap-4 rounded-2xl border border-[#E5E7EB] bg-white p-4"
+                            key={session.id || `${session.session_date || "session"}-${index}`}
+                            className="rounded-2xl border border-[#E5E7EB] bg-white p-4 transition hover:border-[#1157D8]"
                           >
-                            {photoUrl && (
-                              <div
-                                aria-label="Workout session photo"
-                                className="h-24 w-24 shrink-0 rounded-2xl bg-[#E5E7EB] bg-cover bg-center"
-                                role="img"
-                                style={{ backgroundImage: `url(${photoUrl})` }}
-                              />
+                            <button
+                              type="button"
+                              onClick={() => handleWorkoutSessionClick(session.id)}
+                              className="flex w-full gap-4 text-left"
+                              aria-expanded={isExpanded}
+                            >
+                              {photoUrl && (
+                                <div
+                                  aria-label="Workout session photo"
+                                  className="h-24 w-24 shrink-0 rounded-2xl bg-[#E5E7EB] bg-cover bg-center"
+                                  role="img"
+                                  style={{ backgroundImage: `url(${photoUrl})` }}
+                                />
+                              )}
+
+                              <div className="min-w-0 flex-1">
+                                <div className="flex flex-wrap items-start justify-between gap-3">
+                                  <div>
+                                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#1157D8]">
+                                      Session date
+                                    </p>
+                                    <h3 className="mt-1 text-lg font-bold text-[#0B1220]">
+                                      {formatDate(session.session_date)}
+                                    </h3>
+                                  </div>
+                                  <span className="rounded-full bg-[#EAF1FF] px-3 py-1 text-xs font-bold text-[#1157D8]">
+                                    {formatValue(session.status)}
+                                  </span>
+                                </div>
+
+                                <div className="mt-4 grid grid-cols-3 gap-3">
+                                  <div>
+                                    <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#6B7280]">
+                                      Duration
+                                    </p>
+                                    <p className="mt-1 text-sm font-bold text-[#0B1220]">
+                                      {formatValue(session.duration_minutes)}
+                                      {session.duration_minutes ? " min" : ""}
+                                    </p>
+                                  </div>
+                                  <div>
+                                    <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#6B7280]">
+                                      RPE
+                                    </p>
+                                    <p className="mt-1 text-sm font-bold text-[#0B1220]">
+                                      {formatValue(session.avg_rpe)}
+                                    </p>
+                                  </div>
+                                  <div>
+                                    <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#6B7280]">
+                                      HR
+                                    </p>
+                                    <p className="mt-1 text-sm font-bold text-[#0B1220]">
+                                      {formatValue(session.avg_heart_rate)}
+                                      {session.avg_heart_rate ? " bpm" : ""}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            </button>
+
+                            {isExpanded && (
+                              <div className="mt-5 border-t border-[#E5E7EB] pt-5">
+                                <h4 className="text-sm font-bold text-[#0B1220]">
+                                  Exercise log
+                                </h4>
+
+                                {isLoadingExercises && (
+                                  <p className="mt-3 text-sm font-semibold text-[#4B5563]">
+                                    Loading exercises...
+                                  </p>
+                                )}
+
+                                {exercisesError && (
+                                  <p className="mt-3 rounded-2xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
+                                    {exercisesError}
+                                  </p>
+                                )}
+
+                                {!isLoadingExercises && !exercisesError && exercises.length === 0 && (
+                                  <p className="mt-3 text-sm font-semibold text-[#4B5563]">
+                                    No exercises found for this session.
+                                  </p>
+                                )}
+
+                                {!isLoadingExercises && !exercisesError && exercises.length > 0 && (
+                                  <div className="mt-4 space-y-4">
+                                    {groupWorkoutExercisesByBlock(exercises).map(
+                                      ([block, blockExercises]) => (
+                                        <div
+                                          key={block}
+                                          className="rounded-2xl border border-[#E5E7EB] bg-[#F8FAFC] p-4"
+                                        >
+                                          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#1157D8]">
+                                            {block}
+                                          </p>
+
+                                          <div className="mt-3 space-y-3">
+                                            {blockExercises.map((exercise, exerciseIndex) => (
+                                              <div
+                                                key={`${exercise.display_name || "exercise"}-${exerciseIndex}`}
+                                                className="rounded-2xl border border-[#E5E7EB] bg-white p-4"
+                                              >
+                                                <h5 className="text-sm font-bold text-[#0B1220]">
+                                                  {formatValue(exercise.display_name)}
+                                                </h5>
+                                                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                                                  <div>
+                                                    <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#6B7280]">
+                                                      Prescribed
+                                                    </p>
+                                                    <p className="mt-1 text-sm font-semibold text-[#0B1220]">
+                                                      {getPrescribedExerciseSummary(exercise)}
+                                                    </p>
+                                                  </div>
+                                                  <div>
+                                                    <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#6B7280]">
+                                                      Actual
+                                                    </p>
+                                                    <p className="mt-1 text-sm font-semibold leading-6 text-[#0B1220]">
+                                                      {getActualResultSummary(exercise.actual_result)}
+                                                    </p>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      ),
+                                    )}
+                                  </div>
+                                )}
+                              </div>
                             )}
-
-                            <div className="min-w-0 flex-1">
-                              <div className="flex flex-wrap items-start justify-between gap-3">
-                                <div>
-                                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#1157D8]">
-                                    Session date
-                                  </p>
-                                  <h3 className="mt-1 text-lg font-bold text-[#0B1220]">
-                                    {formatDate(session.session_date)}
-                                  </h3>
-                                </div>
-                                <span className="rounded-full bg-[#EAF1FF] px-3 py-1 text-xs font-bold text-[#1157D8]">
-                                  {formatValue(session.status)}
-                                </span>
-                              </div>
-
-                              <div className="mt-4 grid grid-cols-3 gap-3">
-                                <div>
-                                  <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#6B7280]">
-                                    Duration
-                                  </p>
-                                  <p className="mt-1 text-sm font-bold text-[#0B1220]">
-                                    {formatValue(session.duration_minutes)}
-                                    {session.duration_minutes ? " min" : ""}
-                                  </p>
-                                </div>
-                                <div>
-                                  <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#6B7280]">
-                                    RPE
-                                  </p>
-                                  <p className="mt-1 text-sm font-bold text-[#0B1220]">
-                                    {formatValue(session.avg_rpe)}
-                                  </p>
-                                </div>
-                                <div>
-                                  <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#6B7280]">
-                                    HR
-                                  </p>
-                                  <p className="mt-1 text-sm font-bold text-[#0B1220]">
-                                    {formatValue(session.avg_heart_rate)}
-                                    {session.avg_heart_rate ? " bpm" : ""}
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
                           </article>
                         );
                       })}
