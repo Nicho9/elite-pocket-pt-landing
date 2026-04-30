@@ -241,7 +241,7 @@ export default function Home() {
           </div>
 
         </div>
-        <div id="early-access" className="relative z-10 mx-auto -mt-32 flex w-full max-w-6xl scroll-mt-24 flex-col items-start gap-4 px-4">
+        <div id="early-access" className="relative z-10 mx-auto mt-6 flex w-full max-w-6xl scroll-mt-24 flex-col items-start gap-4 px-4 lg:-mt-32">
           <div className="flex w-full max-w-5xl flex-col items-start gap-4">
             <div className="inline-flex rounded-full bg-[#1157D8] px-8 py-4 text-base font-bold text-white shadow-[0_16px_40px_rgba(17,87,216,0.32)]">
               Get Early Access — 50% Off
@@ -357,7 +357,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="system" className="scroll-mt-24 bg-white px-5 py-20">
+      <section id="system" className="scroll-mt-24 overflow-hidden bg-white px-5 py-20">
         <div className="mx-auto max-w-7xl">
           <div className="mx-auto max-w-4xl text-center">
             <h2 className="text-3xl font-bold tracking-tight text-[#0B1220] sm:text-4xl">
@@ -433,13 +433,13 @@ export default function Home() {
             ].map((pillar) => (
               <div
                 key={pillar.title}
-                className="grid items-center gap-8 rounded-[2rem] border border-[#E5E7EB] bg-[#F8FAFC] p-6 shadow-[0_18px_48px_rgba(15,23,42,0.08)] lg:grid-cols-2 lg:p-8"
+                className="grid w-full max-w-full items-center gap-8 overflow-hidden rounded-[2rem] border border-[#E5E7EB] bg-[#F8FAFC] p-6 shadow-[0_18px_48px_rgba(15,23,42,0.08)] lg:grid-cols-2 lg:p-8"
               >
-                <div className={pillar.reverse ? "lg:order-2" : ""}>
+                <div className={`min-w-0 ${pillar.reverse ? "lg:order-2" : ""}`}>
                   <p className="text-sm font-bold uppercase tracking-[0.22em] text-[#1157D8]">
                     {pillar.title}
                   </p>
-                  <h3 className="mt-4 text-2xl font-bold tracking-tight text-[#0B1220] sm:text-3xl">
+                  <h3 className="mt-4 text-xl font-bold tracking-tight text-[#0B1220] sm:text-3xl">
                     {pillar.headline}
                   </h3>
                   <ul className="mt-6 space-y-3 text-base font-medium text-[#4B5563]">
@@ -448,18 +448,18 @@ export default function Home() {
                         <span className="mt-1 flex size-5 shrink-0 items-center justify-center rounded-full bg-[#1157D8] text-xs font-bold text-white">
                           ✓
                         </span>
-                        <span>{bullet}</span>
+                        <span className="min-w-0">{bullet}</span>
                       </li>
                     ))}
                   </ul>
                 </div>
 
-                <div className={pillar.reverse ? "lg:order-1" : ""}>
-                  <div className="flex gap-4 overflow-hidden rounded-[1.75rem] border border-white/80 bg-white/80 p-4 shadow-[0_14px_36px_rgba(15,23,42,0.08)]">
+                <div className={`min-w-0 max-w-full ${pillar.reverse ? "lg:order-1" : ""}`}>
+                  <div className="flex max-w-full gap-4 overflow-x-auto rounded-[1.75rem] border border-white/80 bg-white/80 p-4 shadow-[0_14px_36px_rgba(15,23,42,0.08)] lg:overflow-hidden">
                     {pillar.images.map((src, index) => (
                       <div
                         key={`${pillar.title}-${src}-${index}`}
-                        className="relative aspect-[390/844] w-36 shrink-0 overflow-hidden rounded-[1.5rem] border-2 border-black bg-white shadow-[0_12px_28px_rgba(15,23,42,0.16)] sm:w-44"
+                        className="relative aspect-[390/844] w-[68vw] max-w-[260px] shrink-0 overflow-hidden rounded-[1.5rem] border-2 border-black bg-white shadow-[0_12px_28px_rgba(15,23,42,0.16)] sm:w-44 lg:w-44 lg:max-w-none"
                       >
                         <Image
                           src={src}
