@@ -696,7 +696,11 @@ export default function AdminUserPage() {
     }
 
     if (/^https?:\/\//i.test(trimmedValue)) {
-      return trimmedValue;
+      const [urlWithoutQuery] = trimmedValue.split("?");
+
+      return urlWithoutQuery.includes("/object/sign/")
+        ? urlWithoutQuery.replace("/object/sign/", "/object/public/")
+        : trimmedValue;
     }
 
     const normalizedPath = trimmedValue.replace(/^\/+/, "");
