@@ -171,9 +171,9 @@ export default function Home() {
             >
               Menu
             </button>
-            <a href="#login" className="text-sm font-semibold text-[#374151] transition hover:text-[#1157D8]">
+            <Link href="/login" className="text-sm font-semibold text-[#374151] transition hover:text-[#1157D8]">
               Login
-            </a>
+            </Link>
             <a
               href="#early-access"
               className="rounded-full bg-[#1157D8] px-5 py-2.5 text-sm font-bold text-white shadow-[0_10px_24px_rgba(17,87,216,0.24)] transition hover:bg-[#0A39A8]"
