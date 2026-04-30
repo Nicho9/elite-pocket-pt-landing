@@ -9,12 +9,15 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [resetMessage, setResetMessage] = useState("");
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsLoading(true);
     setErrorMessage("");
+    setResetMessage("");
 
     try {
       const supabase = createBrowserSupabaseClient();
@@ -51,6 +54,36 @@ export default function LoginPage() {
       setErrorMessage(error instanceof Error ? error.message : "Unable to sign in.");
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  async function handleForgotPassword() {
+    setErrorMessage("");
+    setResetMessage("");
+
+    if (!email.trim()) {
+      setErrorMessage("Enter your email address to reset your password.");
+      return;
+    }
+
+    setIsResettingPassword(true);
+
+    try {
+      const supabase = createBrowserSupabaseClient();
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+        redirectTo: "https://www.elitepocketpt.com/reset-password",
+      });
+
+      if (error) {
+        setErrorMessage(error.message);
+        return;
+      }
+
+      setResetMessage("Password reset link sent. Check your email.");
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Unable to send reset email.");
+    } finally {
+      setIsResettingPassword(false);
     }
   }
 
@@ -94,9 +127,24 @@ export default function LoginPage() {
             />
           </label>
 
+          <button
+            type="button"
+            onClick={handleForgotPassword}
+            disabled={isResettingPassword}
+            className="text-sm font-semibold text-[#1157D8] transition hover:text-[#0A39A8] disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            {isResettingPassword ? "Sending reset link..." : "Forgot password?"}
+          </button>
+
           {errorMessage && (
             <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
               {errorMessage}
+            </p>
+          )}
+
+          {resetMessage && (
+            <p className="rounded-2xl bg-[#F8FAFC] px-4 py-3 text-sm font-semibold text-[#1157D8]">
+              {resetMessage}
             </p>
           )}
 
