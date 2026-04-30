@@ -117,6 +117,9 @@ export default function AdminPage() {
   }, [router, supabase]);
 
   const activeSubscriptions = users.filter((user) => user.subscription_status === "active").length;
+  const inactiveUsers = users.filter((user) => user.subscription_status !== "active").length;
+  const activeUsersPercentage =
+    users.length > 0 ? Math.round((activeSubscriptions / users.length) * 100) : 0;
   const completedOnboarding = users.filter((user) => user.onboarding_completed).length;
 
   return (
@@ -142,8 +145,10 @@ export default function AdminPage() {
 
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
           {[
-            ["Total users", users.length],
+            ["Total users (all time)", users.length],
             ["Active subscriptions", activeSubscriptions],
+            ["Inactive users", inactiveUsers],
+            ["Active users %", `${activeUsersPercentage}%`],
             ["Completed onboarding", completedOnboarding],
           ].map(([label, value]) => (
             <div
@@ -185,7 +190,11 @@ export default function AdminPage() {
                 </thead>
                 <tbody className="divide-y divide-[#E5E7EB]">
                   {users.map((user) => (
-                    <tr key={user.id} className="align-top">
+                    <tr
+                      key={user.id}
+                      onClick={() => router.push(`/admin/user/${user.id}`)}
+                      className="cursor-pointer align-top transition hover:bg-[#F8FAFC]"
+                    >
                       <td className="px-5 py-4 font-semibold text-[#0B1220]">
                         {formatValue(user.full_name)}
                       </td>
