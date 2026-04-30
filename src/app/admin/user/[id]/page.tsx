@@ -982,19 +982,25 @@ export default function AdminUserPage() {
 
                                 {!isLoadingMeals && !mealsError && meals.length > 0 && (
                                   <div className="mt-4 space-y-3">
-                                    {meals.map((meal, mealIndex) => (
-                                      <div
-                                        key={`${meal.food_name || "meal"}-${mealIndex}`}
-                                        className="flex flex-col gap-4 rounded-2xl border border-[#E5E7EB] bg-[#F8FAFC] p-4 sm:flex-row"
-                                      >
-                                        {meal.photo_url && (
-                                          <div
-                                            aria-label="Meal photo"
-                                            className="h-32 w-full shrink-0 rounded-2xl bg-[#E5E7EB] bg-cover bg-center sm:h-24 sm:w-24"
-                                            role="img"
-                                            style={{ backgroundImage: `url(${meal.photo_url})` }}
-                                          />
-                                        )}
+                                    {meals.map((meal, mealIndex) => {
+                                      const mealPhotoUrl = getStoragePublicUrl(
+                                        "meal-photos",
+                                        meal.photo_url,
+                                      );
+
+                                      return (
+                                        <div
+                                          key={`${meal.food_name || "meal"}-${mealIndex}`}
+                                          className="flex flex-col gap-4 rounded-2xl border border-[#E5E7EB] bg-[#F8FAFC] p-4 sm:flex-row"
+                                        >
+                                          {mealPhotoUrl && (
+                                            <div
+                                              aria-label="Meal photo"
+                                              className="h-32 w-full shrink-0 rounded-2xl bg-[#E5E7EB] bg-cover bg-center sm:h-24 sm:w-24"
+                                              role="img"
+                                              style={{ backgroundImage: `url(${mealPhotoUrl})` }}
+                                            />
+                                          )}
 
                                         <div className="min-w-0 flex-1">
                                           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -1047,7 +1053,8 @@ export default function AdminUserPage() {
                                           </div>
                                         </div>
                                       </div>
-                                    ))}
+                                      );
+                                    })}
                                   </div>
                                 )}
                               </div>
