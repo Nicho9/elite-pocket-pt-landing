@@ -1086,7 +1086,7 @@ export default function AdminUserPage() {
                     <div className="mt-5 grid gap-4 md:grid-cols-2">
                       {workoutSessions.map((session, index) => {
                         const photoUrl = getStoragePublicUrl(
-                          "workout-media",
+                          "workout-session-media",
                           getFirstPhotoUrl(session.photos),
                         );
 
