@@ -75,8 +75,8 @@ type ProgressPhoto = {
 
 type StrengthMetric = {
   exercise_name: string | null;
-  max_weight: number | string | null;
-  updated_at: string | null;
+  weight_kg: number | string | null;
+  date_tested: string | null;
 };
 
 const tabs = ["Overview", "Nutrition", "Workouts", "Community", "Progress"] as const;
@@ -602,9 +602,9 @@ export default function AdminUserPage() {
           const { data: strengthData, error: strengthError } = await supabase
             .schema("public")
             .from("user_strength_metrics")
-            .select("exercise_name,max_weight,updated_at")
+            .select("exercise_name,weight_kg,date_tested")
             .eq("user_email", data.email)
-            .order("max_weight", { ascending: false })
+            .order("weight_kg", { ascending: false })
             .limit(3);
 
           if (!isMounted) {
@@ -682,6 +682,30 @@ export default function AdminUserPage() {
     }
 
     setLoadingNutritionMealsDay(null);
+  }
+
+  function getStoragePublicUrl(bucket: string, value: string | null | undefined) {
+    if (!value) {
+      return null;
+    }
+
+    const trimmedValue = value.trim();
+
+    if (!trimmedValue) {
+      return null;
+    }
+
+    if (/^https?:\/\//i.test(trimmedValue)) {
+      return trimmedValue;
+    }
+
+    const normalizedPath = trimmedValue.replace(/^\/+/, "");
+    const bucketPrefix = `${bucket}/`;
+    const storagePath = normalizedPath.startsWith(bucketPrefix)
+      ? normalizedPath.slice(bucketPrefix.length)
+      : normalizedPath;
+
+    return supabase.storage.from(bucket).getPublicUrl(storagePath).data.publicUrl;
   }
 
   const identityRows = [
@@ -1057,7 +1081,10 @@ export default function AdminUserPage() {
                   {!isLoadingWorkouts && !workoutErrorMessage && workoutSessions.length > 0 && (
                     <div className="mt-5 grid gap-4 md:grid-cols-2">
                       {workoutSessions.map((session, index) => {
-                        const photoUrl = getFirstPhotoUrl(session.photos);
+                        const photoUrl = getStoragePublicUrl(
+                          "workout-media",
+                          getFirstPhotoUrl(session.photos),
+                        );
 
                         return (
                           <article
@@ -1245,10 +1272,10 @@ export default function AdminUserPage() {
                                 {formatValue(metric.exercise_name)}
                               </h4>
                               <p className="mt-3 text-2xl font-bold text-[#0B1220]">
-                                {formatValue(toNumber(metric.max_weight))} kg
+                                {formatValue(toNumber(metric.weight_kg))} kg
                               </p>
                               <p className="mt-2 text-xs font-semibold text-[#4B5563]">
-                                Latest: {formatDate(metric.updated_at)}
+                                Latest: {formatDate(metric.date_tested)}
                               </p>
                             </div>
                           ))}
@@ -1306,34 +1333,41 @@ export default function AdminUserPage() {
                           </div>
 
                           <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                            {photos.map((photo, index) => (
-                              <article
-                                key={`${photo.date || "photo"}-${index}`}
-                                className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-[0_14px_34px_rgba(15,23,42,0.08)]"
-                              >
-                                {photo.photo_url ? (
-                                  <div
-                                    aria-label="Progress photo"
-                                    className="aspect-[4/5] bg-[#E5E7EB] bg-cover bg-center"
-                                    role="img"
-                                    style={{ backgroundImage: `url(${photo.photo_url})` }}
-                                  />
-                                ) : (
-                                  <div className="flex aspect-[4/5] items-center justify-center bg-[#E5E7EB] px-4 text-center text-sm font-semibold text-[#4B5563]">
-                                    No image available
-                                  </div>
-                                )}
+                            {photos.map((photo, index) => {
+                              const photoUrl = getStoragePublicUrl(
+                                "progress-photos",
+                                photo.photo_url,
+                              );
 
-                                <div className="border-t border-[#E5E7EB] px-4 py-3">
-                                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#1157D8]">
-                                    Progress photo
-                                  </p>
-                                  <p className="mt-1 text-sm font-bold text-[#0B1220]">
-                                    {formatDate(photo.date)}
-                                  </p>
-                                </div>
-                              </article>
-                            ))}
+                              return (
+                                <article
+                                  key={`${photo.date || "photo"}-${index}`}
+                                  className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-[0_14px_34px_rgba(15,23,42,0.08)]"
+                                >
+                                  {photoUrl ? (
+                                    <div
+                                      aria-label="Progress photo"
+                                      className="aspect-[4/5] bg-[#E5E7EB] bg-cover bg-center"
+                                      role="img"
+                                      style={{ backgroundImage: `url(${photoUrl})` }}
+                                    />
+                                  ) : (
+                                    <div className="flex aspect-[4/5] items-center justify-center bg-[#E5E7EB] px-4 text-center text-sm font-semibold text-[#4B5563]">
+                                      No image available
+                                    </div>
+                                  )}
+
+                                  <div className="border-t border-[#E5E7EB] px-4 py-3">
+                                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#1157D8]">
+                                      Progress photo
+                                    </p>
+                                    <p className="mt-1 text-sm font-bold text-[#0B1220]">
+                                      {formatDate(photo.date)}
+                                    </p>
+                                  </div>
+                                </article>
+                              );
+                            })}
                           </div>
                         </div>
                       ))}
