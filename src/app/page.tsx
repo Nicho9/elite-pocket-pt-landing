@@ -625,53 +625,90 @@ export default function Home() {
           <h2 className="text-center text-3xl font-bold tracking-tight text-[#0B1220] sm:text-4xl">
             Pricing
           </h2>
-          <div className="mt-10 grid gap-8 rounded-[2.5rem] border border-[#E5E7EB] bg-white p-8 shadow-[0_22px_64px_rgba(15,23,42,0.1)] lg:grid-cols-[0.95fr_1.25fr_0.8fr] lg:items-center lg:gap-10">
-            <div>
-              <p className="text-sm font-bold uppercase tracking-[0.22em] text-[#1157D8]">
-                Full System Access
-              </p>
-              <p className="mt-4 text-5xl font-bold tracking-tight text-[#0B1220]">
-                $49 <span className="text-2xl font-semibold text-[#4B5563]">/ month</span>
-              </p>
-              <p className="mt-3 text-sm font-medium text-[#6B7280]">
-                Also available in GBP and AED at checkout
-              </p>
-            </div>
-
-            <div>
-              <h3 className="text-xl font-bold tracking-tight text-[#0B1220]">
-                Everything included
-              </h3>
-              <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {[
+          <div className="mt-10 grid gap-8 lg:grid-cols-2">
+            {[
+              {
+                title: "Full App Access",
+                price: "$49",
+                smallText: "Also available in GBP and AED at checkout",
+                includes: [
                   "Training",
                   "Nutrition",
                   "Coaching feedback",
                   "Mobility flows",
                   "Progress tracking",
                   "Community",
-                ].map((item) => (
-                  <div key={item} className="flex items-center gap-3 text-sm font-semibold text-[#374151]">
-                    <span className="flex size-5 items-center justify-center rounded-full bg-[#1157D8] text-xs font-bold text-white">
-                      ✓
-                    </span>
-                    {item}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="lg:text-right">
-              <a
-                href="#early-access"
-                className="inline-flex w-full justify-center rounded-full bg-[#1157D8] px-8 py-4 text-base font-bold text-white shadow-[0_16px_40px_rgba(17,87,216,0.28)] transition hover:bg-[#0A39A8] lg:w-auto"
+                ],
+                buttonText: "Start your training",
+                note: "Cancel anytime. Manage your account online.",
+              },
+              {
+                title: "VIP Coaching",
+                price: "$199",
+                smallText:
+                  "Includes full app access plus full coaching support directly from Coach Mike",
+                includes: [
+                  "Everything in Full App Access",
+                  "Full coaching support directly from Coach Mike",
+                  "2 x 30-minute one-to-one video calls per month",
+                  "24/7 WhatsApp support",
+                  "1 community coaching call per month",
+                ],
+                buttonText: "Apply for VIP coaching",
+                note: "Limited availability for high-touch coaching clients.",
+              },
+            ].map((plan) => (
+              <div
+                key={plan.title}
+                className="flex h-full flex-col rounded-[2.5rem] border border-[#E5E7EB] bg-white p-8 shadow-[0_22px_64px_rgba(15,23,42,0.1)]"
               >
-                Start your training
-              </a>
-              <p className="mt-4 text-sm font-medium text-[#6B7280]">
-                Cancel anytime. Manage your account online.
-              </p>
-            </div>
+                <div>
+                  <p className="text-sm font-bold uppercase tracking-[0.22em] text-[#1157D8]">
+                    {plan.title}
+                  </p>
+                  <p className="mt-4 text-5xl font-bold tracking-tight text-[#0B1220]">
+                    {plan.price}{" "}
+                    <span className="text-2xl font-semibold text-[#4B5563]">
+                      / month
+                    </span>
+                  </p>
+                  <p className="mt-3 text-sm font-medium leading-6 text-[#6B7280]">
+                    {plan.smallText}
+                  </p>
+                </div>
+
+                <div className="mt-8 flex-1">
+                  <h3 className="text-xl font-bold tracking-tight text-[#0B1220]">
+                    Includes
+                  </h3>
+                  <div className="mt-5 grid grid-cols-1 gap-3">
+                    {plan.includes.map((item) => (
+                      <div
+                        key={item}
+                        className="flex items-center gap-3 text-sm font-semibold text-[#374151]"
+                      >
+                        <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[#1157D8] text-xs font-bold text-white">
+                          ✓
+                        </span>
+                        {item}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-8">
+                  <a
+                    href="#early-access"
+                    className="inline-flex w-full justify-center rounded-full bg-[#1157D8] px-8 py-4 text-base font-bold text-white shadow-[0_16px_40px_rgba(17,87,216,0.28)] transition hover:bg-[#0A39A8]"
+                  >
+                    {plan.buttonText}
+                  </a>
+                  <p className="mt-4 text-sm font-medium text-[#6B7280]">
+                    {plan.note}
+                  </p>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
