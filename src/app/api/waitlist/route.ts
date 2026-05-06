@@ -101,8 +101,14 @@ export async function POST(request: Request) {
                     <td style="border:1px solid rgba(255,255,255,0.14);border-radius:28px;background:#0b1220;overflow:hidden;">
                       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;">
                         <tr>
-                          <td style="padding:0;background:#05070d;">
-                            <img src="https://www.elitepocketpt.com/elite-pocket-pt-email-logo.png" alt="Elite Pocket PT" width="680" style="display:block;width:100%;max-width:680px;height:auto;border:0;outline:none;text-decoration:none;" />
+                          <td align="center" style="padding:0;background:#05070d;">
+                            <table role="presentation" width="640" cellspacing="0" cellpadding="0" style="width:100%;max-width:640px;border-collapse:collapse;">
+                              <tr>
+                                <td style="padding:0;">
+                                  <img src="https://www.elitepocketpt.com/elite-pocket-pt-email-logo.png" alt="Elite Pocket PT" width="640" style="width:100%;max-width:640px;height:auto;display:block;border:0;outline:none;text-decoration:none;" />
+                                </td>
+                              </tr>
+                            </table>
                           </td>
                         </tr>
                         <tr>
