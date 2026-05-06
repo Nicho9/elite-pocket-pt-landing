@@ -499,7 +499,7 @@ export default function Home() {
             This isn&apos;t ChatGPT writing your workouts and meal plans.
           </p>
           <p className="mx-auto mt-5 max-w-4xl text-lg font-normal leading-8 text-[#D7E4FF] sm:text-xl">
-            Built on 20+ years of elite coaching experience — not assembled by an algorithm.
+            Built on 20+ years of elite coaching experience and a Master’s degree — not assembled by an algorithm.
           </p>
         </div>
       </section>
