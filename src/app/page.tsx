@@ -337,14 +337,29 @@ export default function Home() {
           <div className="relative mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
             <div className="absolute left-[10%] right-[10%] top-12 hidden h-px bg-gradient-to-r from-transparent via-[#1157D8]/25 to-transparent lg:block" />
             {[
-              "Create your account",
-              "Complete your setup",
-              "Unlock your personalised system",
-              "Train and eat with full support and feedback",
-              "Track your progress",
-            ].map((title, index) => (
+              {
+                title: "Create your account",
+                body: "Sign up securely via Stripe. Full access from day one — cancel anytime.",
+              },
+              {
+                title: "Complete your setup",
+                body: "Tell us your goals, training history, schedule and food preferences. This is what drives every personalised decision in your system.",
+              },
+              {
+                title: "Unlock your personalised system",
+                body: "Your training programme, meal plan and mobility flows are generated from Coach Mike's coaching framework — built over 20+ years. No AI. No generic templates. Just a real system applied to you.",
+              },
+              {
+                title: "Train and eat with full support",
+                body: "Log your sessions and meals. The system — built entirely on Coach Mike's coaching methodology — reviews every entry and delivers feedback the way a real coach would. No chatbots. No AI responses. Real coaching logic, applied to your data, every single day.",
+              },
+              {
+                title: "Track your progress",
+                body: "Strength, body composition and performance — all tracked so you always know what's working and what to adjust next.",
+              },
+            ].map((step, index) => (
               <div
-                key={title}
+                key={step.title}
                 className="relative min-h-44 rounded-2xl border border-[#E5E7EB] bg-white p-6 shadow-[0_20px_52px_rgba(15,23,42,0.12)] transition duration-300 lg:hover:-translate-y-1 lg:hover:shadow-[0_26px_70px_rgba(17,87,216,0.16)]"
               >
                 <div className="mb-6 flex size-12 items-center justify-center rounded-full bg-[#1157D8]/10 text-sm font-bold text-[#1157D8] ring-1 ring-[#1157D8]/15">
@@ -353,7 +368,10 @@ export default function Home() {
                 <p className="mb-3 text-xs font-bold uppercase tracking-[0.22em] text-[#1157D8]">
                   Step
                 </p>
-                <h3 className="font-semibold text-[#0B1220]">{title}</h3>
+                <h3 className="font-semibold text-[#0B1220]">{step.title}</h3>
+                <p className="mt-3 text-sm font-medium leading-6 text-[#4B5563]">
+                  {step.body}
+                </p>
               </div>
             ))}
           </div>
