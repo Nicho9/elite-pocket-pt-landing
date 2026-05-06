@@ -1,9 +1,8 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { createClient } from "@supabase/supabase-js";
 
 const launchDate = new Date("2026-06-01T10:00:00+04:00").getTime();
 
@@ -68,17 +67,6 @@ export default function Home() {
   const [errorMessage, setErrorMessage] = useState("");
   const [activeCoachImage, setActiveCoachImage] = useState(0);
 
-  const supabase = useMemo(() => {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-    if (!supabaseUrl || !supabaseAnonKey) {
-      return null;
-    }
-
-    return createClient(supabaseUrl, supabaseAnonKey);
-  }, []);
-
   useEffect(() => {
     const initialTimer = window.setTimeout(() => {
       setTimeLeft(getTimeLeft());
@@ -107,34 +95,40 @@ export default function Home() {
     setStatus("loading");
     setErrorMessage("");
 
-    if (!supabase) {
+    try {
+      const response = await fetch("/api/waitlist", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: name.trim(),
+          email: email.trim().toLowerCase(),
+          referralSource,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        setStatus("success");
+        setName("");
+        setEmail("");
+        setReferralSource("");
+        return;
+      }
+
+      if (response.status === 409 || result.code === "duplicate_email") {
+        setStatus("duplicate");
+        return;
+      }
+
+      setErrorMessage(typeof result.error === "string" ? result.error : "");
       setStatus("error");
-      return;
+    } catch (error) {
+      console.error("Waitlist submission error:", error);
+      setStatus("error");
     }
-
-    const { error } = await supabase.from("landing_waitlist").insert({
-      name: name.trim(),
-      email: email.trim().toLowerCase(),
-      referral_source: referralSource,
-    });
-
-    if (!error) {
-      setStatus("success");
-      setName("");
-      setEmail("");
-      setReferralSource("");
-      return;
-    }
-
-    console.error("Supabase waitlist insert error:", error);
-
-    if (error.code === "23505") {
-      setStatus("duplicate");
-      return;
-    }
-
-    setErrorMessage(`${error.code}: ${error.message}`);
-    setStatus("error");
   }
 
   const countdown = [
