@@ -204,6 +204,9 @@ export default function Home() {
             <p className="mt-6 text-lg font-medium text-[#374151] sm:text-2xl">
               Workouts. Nutrition. Mobility. Coaching. Community.
             </p>
+            <p className="mt-3 max-w-2xl rounded-full border border-white/70 bg-white/55 px-4 py-2 text-base font-semibold italic text-[#1F2937] shadow-sm backdrop-blur sm:text-lg">
+              Built on 20 years of elite coaching and a Master’s degree in Sports Nutrition — not generic AI programming.
+            </p>
 
             <div className="mt-6 grid w-full max-w-3xl grid-cols-2 gap-3 sm:grid-cols-4">
               {countdown.map(([label, value]) => (
@@ -475,6 +478,17 @@ export default function Home() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section className="bg-[#0B1220] px-5 py-14 text-center sm:py-16">
+        <div className="mx-auto max-w-5xl">
+          <p className="text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl">
+            This isn&apos;t ChatGPT writing your workouts and meal plans.
+          </p>
+          <p className="mx-auto mt-5 max-w-4xl text-lg font-normal leading-8 text-[#D7E4FF] sm:text-xl">
+            Built on 20+ years of elite coaching experience — not assembled by an algorithm.
+          </p>
         </div>
       </section>
 
