@@ -625,7 +625,7 @@ export default function AdminUserPage() {
           const { startDate, endDate } = getLastTenDaysRange();
           const { data: nutritionData, error: nutritionError } = await supabase
             .schema("public")
-            .from("nutrition_log")
+            .from("admin_nutrition_log_detail")
             .select("date,calories,protein_g,carbs_g,fats_g")
             .eq("user_email", data.email)
             .gte("date", startDate)
@@ -651,7 +651,7 @@ export default function AdminUserPage() {
 
           const { data: workoutData, error: workoutError } = await supabase
             .schema("public")
-            .from("workout_generator_session_log")
+            .from("admin_workout_session_log_detail")
             .select("id,session_date,duration_minutes,avg_rpe,avg_heart_rate,status,photos")
             .eq("user_email", data.email)
             .gte("session_date", startDate)
@@ -677,7 +677,7 @@ export default function AdminUserPage() {
 
           const { data: communityData, error: communityError } = await supabase
             .schema("public")
-            .from("community_feed")
+            .from("admin_community_feed_detail")
             .select("created_date,content_type,caption,like_count,comment_count,primary_media_url")
             .eq("user_email", data.email)
             .gte("created_date", startDate)
@@ -699,7 +699,7 @@ export default function AdminUserPage() {
 
           const { data: progressData, error: progressError } = await supabase
             .schema("public")
-            .from("progress_photo")
+            .from("admin_progress_photo_detail")
             .select("date,photo_url")
             .eq("user_email", data.email)
             .order("date", { ascending: false });
@@ -717,7 +717,7 @@ export default function AdminUserPage() {
 
           const { data: strengthData, error: strengthError } = await supabase
             .schema("public")
-            .from("user_strength_metrics")
+            .from("admin_user_strength_metrics_detail")
             .select("exercise_name,weight_kg,date_tested")
             .eq("user_email", data.email)
             .order("weight_kg", { ascending: false })
@@ -779,7 +779,7 @@ export default function AdminUserPage() {
 
     const { data, error } = await supabase
       .schema("public")
-      .from("nutrition_log")
+      .from("admin_nutrition_log_detail")
       .select("meal_type,food_name,portion,calories,protein_g,carbs_g,fats_g,photo_url")
       .eq("user_email", profile.email)
       .eq("date", date);
@@ -819,7 +819,7 @@ export default function AdminUserPage() {
 
     const { data, error } = await supabase
       .schema("public")
-      .from("workout_generator_exercise_log")
+      .from("admin_workout_exercise_log_detail")
       .select("block,display_name,sets,reps,actual_result")
       .eq("session_log_id", sessionId);
 
