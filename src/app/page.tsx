@@ -66,6 +66,7 @@ export default function Home() {
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "duplicate" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const [activeCoachImage, setActiveCoachImage] = useState(0);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const initialTimer = window.setTimeout(() => {
@@ -164,7 +165,10 @@ export default function Home() {
           <div className="flex items-center gap-3">
             <button
               type="button"
-              className="rounded-full border border-[#E5E7EB] bg-white px-4 py-2 text-sm font-semibold text-[#374151] shadow-sm lg:hidden"
+              onClick={() => setMobileMenuOpen(true)}
+              className="rounded-full border border-[#E5E7EB] bg-white px-4 py-2 text-sm font-semibold text-[#374151] shadow-sm md:hidden"
+              aria-expanded={mobileMenuOpen}
+              aria-controls="mobile-navigation"
             >
               Menu
             </button>
@@ -180,6 +184,84 @@ export default function Home() {
           </div>
         </div>
       </nav>
+
+      <div
+        className={`fixed inset-0 z-[60] md:hidden ${
+          mobileMenuOpen ? "pointer-events-auto" : "pointer-events-none"
+        }`}
+        aria-hidden={!mobileMenuOpen}
+      >
+        <button
+          type="button"
+          aria-label="Close mobile navigation"
+          onClick={() => setMobileMenuOpen(false)}
+          className={`absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-300 ${
+            mobileMenuOpen ? "opacity-100" : "opacity-0"
+          }`}
+        />
+
+        <aside
+          id="mobile-navigation"
+          className={`absolute right-3 top-3 flex max-h-[calc(100vh-1.5rem)] w-[min(360px,calc(100vw-1.5rem))] flex-col rounded-[2rem] border border-white/80 bg-white p-5 shadow-[0_28px_90px_rgba(15,23,42,0.24)] transition-transform duration-300 ${
+            mobileMenuOpen ? "translate-x-0" : "translate-x-[calc(100%+1rem)]"
+          }`}
+        >
+          <div className="flex items-center justify-between gap-4 border-b border-[#E5E7EB] pb-4">
+            <Link
+              href="/"
+              onClick={() => setMobileMenuOpen(false)}
+              className="text-base font-bold tracking-tight text-[#0B1220]"
+            >
+              Elite Pocket PT
+            </Link>
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(false)}
+              className="rounded-full border border-[#E5E7EB] bg-white px-4 py-2 text-sm font-bold text-[#374151] shadow-sm transition hover:border-[#1157D8] hover:text-[#1157D8]"
+            >
+              Close
+            </button>
+          </div>
+
+          <div className="mt-6 grid gap-2 text-base font-bold text-[#0B1220]">
+            <a
+              href="#how-it-works"
+              onClick={() => setMobileMenuOpen(false)}
+              className="rounded-2xl px-4 py-4 transition hover:bg-[#F5F7FB] hover:text-[#1157D8]"
+            >
+              How It Works
+            </a>
+            <a
+              href="#system"
+              onClick={() => setMobileMenuOpen(false)}
+              className="rounded-2xl px-4 py-4 transition hover:bg-[#F5F7FB] hover:text-[#1157D8]"
+            >
+              System
+            </a>
+            <a
+              href="#pricing"
+              onClick={() => setMobileMenuOpen(false)}
+              className="rounded-2xl px-4 py-4 transition hover:bg-[#F5F7FB] hover:text-[#1157D8]"
+            >
+              Pricing
+            </a>
+            <Link
+              href="/vip-webinars"
+              onClick={() => setMobileMenuOpen(false)}
+              className="rounded-2xl px-4 py-4 transition hover:bg-[#F5F7FB] hover:text-[#1157D8]"
+            >
+              VIP Webinars
+            </Link>
+            <Link
+              href="/login"
+              onClick={() => setMobileMenuOpen(false)}
+              className="rounded-2xl px-4 py-4 transition hover:bg-[#F5F7FB] hover:text-[#1157D8]"
+            >
+              Login
+            </Link>
+          </div>
+        </aside>
+      </div>
 
       <main className="min-h-screen bg-[#F5F7FB] text-[#111827]">
       <section className="relative flex min-h-[75vh] flex-col items-start justify-center overflow-hidden px-5 pb-8 pt-24">
