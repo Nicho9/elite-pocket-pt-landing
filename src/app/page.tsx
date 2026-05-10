@@ -156,6 +156,9 @@ export default function Home() {
             <a href="#pricing" className="transition hover:text-[#1157D8]">
               Pricing
             </a>
+            <Link href="/vip-webinars" className="transition hover:text-[#1157D8]">
+              VIP Webinars
+            </Link>
           </div>
 
           <div className="flex items-center gap-3">

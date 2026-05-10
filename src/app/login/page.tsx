@@ -1,11 +1,15 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createBrowserSupabaseClient } from "../../lib/supabaseClient";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectParam = searchParams.get("redirect");
+  const safeRedirect =
+    redirectParam && redirectParam.startsWith("/") && !redirectParam.startsWith("//") ? redirectParam : "";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -49,7 +53,7 @@ export default function LoginPage() {
         return;
       }
 
-      router.push(profile?.role === "admin" ? "/admin" : "/account");
+      router.push(safeRedirect || (profile?.role === "admin" ? "/admin" : "/account"));
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Unable to sign in.");
     } finally {
