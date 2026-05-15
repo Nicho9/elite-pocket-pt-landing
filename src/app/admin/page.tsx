@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserSupabaseClient } from "../../lib/supabaseClient";
@@ -489,16 +490,25 @@ export default function AdminPage() {
   return (
     <main className="min-h-screen bg-[#F5F7FB] px-5 py-12 text-[#111827]">
       <section className="mx-auto w-full max-w-7xl">
-        <div className="flex flex-col gap-3">
-          <p className="text-sm font-bold uppercase tracking-[0.22em] text-[#1157D8]">
-            Elite Pocket PT
-          </p>
-          <h1 className="text-3xl font-bold tracking-tight text-[#0B1220] sm:text-4xl">
-            Admin Dashboard
-          </h1>
-          <p className="max-w-2xl text-base font-medium text-[#4B5563]">
-            Review user lifecycle, activation progress and recent activity.
-          </p>
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div className="flex flex-col gap-3">
+            <p className="text-sm font-bold uppercase tracking-[0.22em] text-[#1157D8]">
+              Elite Pocket PT
+            </p>
+            <h1 className="text-3xl font-bold tracking-tight text-[#0B1220] sm:text-4xl">
+              Admin Dashboard
+            </h1>
+            <p className="max-w-2xl text-base font-medium text-[#4B5563]">
+              Review user lifecycle, activation progress and recent activity.
+            </p>
+          </div>
+
+          <Link
+            href="/admin/newsletter"
+            className="inline-flex h-11 w-fit items-center justify-center rounded-xl bg-[#1157D8] px-5 text-sm font-bold text-white shadow-[0_14px_32px_rgba(17,87,216,0.22)] transition hover:bg-[#0A39A8]"
+          >
+            Newsletter
+          </Link>
         </div>
 
         {errorMessage && (

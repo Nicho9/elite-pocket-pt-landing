@@ -14,33 +14,6 @@ const referralOptions = [
   "Other",
 ];
 
-const deviceScreens = [
-  {
-    name: "Workout",
-    src: "/hero/workout-page.png",
-    width: 766,
-    height: 1582,
-    className:
-      "left-0 top-16 z-10 w-[35%] rotate-[-10deg] scale-90 opacity-95 sm:top-20 lg:top-28 lg:w-[36%]",
-  },
-  {
-    name: "Dashboard",
-    src: "/hero/dashboard.png",
-    width: 788,
-    height: 1590,
-    className:
-      "left-1/2 top-0 z-30 w-[41%] -translate-x-1/2 scale-110 lg:w-[43%] lg:scale-[1.14]",
-  },
-  {
-    name: "Nutrition",
-    src: "/hero/nutrition-page.png",
-    width: 764,
-    height: 1574,
-    className:
-      "right-0 top-16 z-20 w-[35%] rotate-[10deg] scale-90 opacity-95 sm:top-20 lg:top-28 lg:w-[36%]",
-  },
-];
-
 const coachMikeImages = [
   "/hero/coach-mike-profile.png",
   "/hero/coach-mike-competitor.png",
@@ -264,141 +237,131 @@ export default function Home() {
       </div>
 
       <main className="min-h-screen bg-[#F5F7FB] text-[#111827]">
-      <section className="relative flex min-h-[75vh] flex-col items-start justify-center overflow-hidden px-5 pb-8 pt-24">
-        <div className="absolute inset-0 bg-[url('/hero/gym-background.jpg')] bg-cover bg-center" />
-        <div className="absolute inset-0 bg-gradient-to-r from-white/90 via-white/58 to-white/10" />
-        <div className="absolute inset-0 bg-gradient-to-b from-white/20 via-transparent to-white/35" />
-
-        <div className="relative z-10 mx-auto grid w-full max-w-7xl items-start gap-8 lg:grid-cols-[minmax(0,0.98fr)_minmax(460px,1.02fr)] lg:gap-x-8 lg:gap-y-12">
-          <div className="flex w-full flex-col items-start text-center lg:items-start lg:text-left">
-            <p className="mb-5 rounded-full border border-[#1157D8]/20 bg-white/70 px-4 py-2 text-sm font-semibold uppercase tracking-[0.28em] text-[#1157D8] shadow-sm backdrop-blur">
-              Elite Pocket PT
-            </p>
-
-            <h1 className="max-w-[720px] text-4xl font-bold leading-[1.05] tracking-tight text-[#0B1220] sm:text-5xl lg:text-6xl">
-              <span className="block">A Complete Training System</span>
-              <span className="block">Built on Performance Science.</span>
-            </h1>
-
-            <p className="mt-6 text-lg font-medium text-[#374151] sm:text-2xl">
-              Workouts. Nutrition. Mobility. Coaching. Community.
-            </p>
-            <p className="mt-3 max-w-2xl rounded-full border border-white/70 bg-white/55 px-4 py-2 text-base font-semibold italic text-[#1F2937] shadow-sm backdrop-blur sm:text-lg">
-              Built on 20 years of elite coaching and a Master’s degree in Sports Nutrition — not generic AI programming.
-            </p>
-
-            <div className="mt-6 grid w-full max-w-3xl grid-cols-2 gap-3 sm:grid-cols-4">
-              {countdown.map(([label, value]) => (
-                <div
-                  key={label}
-                  className="rounded-3xl border border-white/80 bg-white/85 p-5 shadow-[0_18px_60px_rgba(17,87,216,0.14)] backdrop-blur"
-                >
-                  <div className="text-4xl font-bold text-[#1157D8] sm:text-5xl">
-                    {String(value).padStart(2, "0")}
-                  </div>
-                  <div className="mt-2 text-xs font-bold uppercase tracking-[0.2em] text-[#6B7280]">
-                    {label}
-                  </div>
-                </div>
-              ))}
+      <section className="bg-[#080A0D] px-5 pb-14 pt-24 text-white sm:pb-16">
+        <div className="mx-auto w-full max-w-7xl">
+          <div className="relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-[#111418] shadow-[0_28px_90px_rgba(0,0,0,0.42)]">
+            <video
+              src="/hero/landing-hero-video.mp4"
+              poster="/hero/landing-hero-poster.jpg"
+              autoPlay
+              muted
+              loop
+              playsInline
+              className="aspect-[16/9] w-full object-cover"
+            />
+            <div className="absolute bottom-0 left-0 hidden p-5 sm:block sm:p-8">
+              <div className="max-w-[22rem] rounded-2xl border border-white/10 bg-black/45 px-5 py-4 backdrop-blur-md">
+                <p className="text-xs font-bold uppercase tracking-[0.24em] text-white/80">
+                  ELITE POCKET PT
+                </p>
+                <p className="mt-2 text-base font-semibold leading-6 text-white sm:text-lg">
+                  Your complete coaching system, built from science — not generic prompts.
+                </p>
+              </div>
             </div>
-
           </div>
 
-          <div className="relative mx-auto mt-4 h-[360px] w-full max-w-[560px] sm:h-[480px] lg:mt-6 lg:h-[700px] lg:max-w-none">
-            {deviceScreens.map((screen) => (
+          <div className="mx-auto mt-4 max-w-sm text-center sm:hidden">
+            <p className="text-2xl font-extrabold uppercase tracking-[0.12em] text-[#1157D8]">
+              ELITE POCKET PT
+            </p>
+            <p className="mt-2 text-sm font-semibold leading-6 text-white/88">
+              Your complete coaching system, built from science — not generic prompts.
+            </p>
+          </div>
+
+          <div className="mx-auto mt-7 grid w-full max-w-xl grid-cols-4 gap-2 sm:mt-8 sm:gap-3">
+            {countdown.map(([label, value]) => (
               <div
-                key={screen.name}
-                className={`absolute aspect-[390/844] overflow-hidden rounded-[2rem] border-4 border-black shadow-[0_0_0_2px_#000,0_24px_55px_rgba(15,23,42,0.22)] ${screen.className}`}
+                key={label}
+                className="relative overflow-hidden rounded-2xl border border-white/10 border-t-[#1157D8]/70 bg-[#11161D] px-3 py-3 text-center shadow-[0_16px_40px_rgba(0,0,0,0.24)] ring-1 ring-[#1157D8]/10 sm:py-4"
               >
-                <Image
-                  src={screen.src}
-                  alt={`${screen.name} app screen`}
-                  fill
-                  sizes="(min-width: 1024px) 24vw, 38vw"
-                  className="object-cover"
-                />
+                <div className="mx-auto mb-3 h-px w-8 bg-[#1157D8]/70" />
+                <div className="text-2xl font-bold tabular-nums text-white sm:text-3xl">
+                  {String(value ?? 0).padStart(2, "0")}
+                </div>
+                <div className="mt-1 text-[0.62rem] font-bold uppercase tracking-[0.16em] text-white/50 sm:text-[0.68rem]">
+                  {label}
+                </div>
               </div>
             ))}
           </div>
 
-        </div>
-        <div id="early-access" className="relative z-10 mx-auto mt-6 flex w-full max-w-6xl scroll-mt-24 flex-col items-start gap-4 px-4 lg:-mt-32">
-          <div className="flex w-full max-w-5xl flex-col items-start gap-4">
-            <div className="inline-flex rounded-full bg-[#1157D8] px-8 py-4 text-base font-bold text-white shadow-[0_16px_40px_rgba(17,87,216,0.32)]">
-              Get Early Access — 50% Off
-            </div>
+          <div id="early-access" className="mx-auto mt-7 w-full max-w-5xl scroll-mt-24 rounded-[2rem] border border-white/10 border-t-[#1157D8]/40 bg-[#0E1319] p-4 shadow-[0_28px_80px_rgba(0,0,0,0.34)] ring-1 ring-[#1157D8]/10 sm:mt-8 sm:p-5">
+            <div className="flex flex-col items-center text-center">
+              <div className="inline-flex rounded-full border border-[#1157D8]/30 bg-[#1157D8]/12 px-5 py-2 text-sm font-bold text-white">
+                Register Your Interest — 50% Early Access
+              </div>
 
-            <form
-              onSubmit={handleSubmit}
-              className="mt-6 grid w-full max-w-6xl grid-cols-1 items-start gap-3 rounded-[2.5rem] border border-white/90 bg-white/95 p-4 shadow-[0_22px_70px_rgba(15,23,42,0.13)] backdrop-blur lg:grid-cols-[1fr_1fr_1.2fr_auto]"
-            >
-              <input
-                required
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                placeholder="Name"
-                className="h-16 rounded-2xl border border-[#E5E7EB] bg-white px-5 text-base outline-none transition focus:border-[#1157D8] focus:ring-4 focus:ring-[#1157D8]/10"
-              />
-
-              <input
-                required
-                type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                placeholder="Email address"
-                className="h-16 rounded-2xl border border-[#E5E7EB] bg-white px-5 text-base outline-none transition focus:border-[#1157D8] focus:ring-4 focus:ring-[#1157D8]/10"
-              />
-
-              <select
-                required
-                value={referralSource}
-                onChange={(event) => setReferralSource(event.target.value)}
-                className="h-16 rounded-2xl border border-[#E5E7EB] bg-white px-5 text-base text-[#374151] outline-none transition focus:border-[#1157D8] focus:ring-4 focus:ring-[#1157D8]/10"
+              <form
+                onSubmit={handleSubmit}
+                className="mt-5 grid w-full grid-cols-1 items-start gap-3 lg:grid-cols-[1fr_1fr_1.2fr_auto]"
               >
-                <option value="">Where did you hear about us?</option>
-                {referralOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
+                <input
+                  required
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  placeholder="Name"
+                  className="h-16 rounded-2xl border border-white/10 bg-[#151B23] px-5 text-base text-white outline-none transition placeholder:text-white/38 focus:border-[#1157D8] focus:bg-[#18202A] focus:ring-4 focus:ring-[#1157D8]/18"
+                />
 
-              <button
-                type="submit"
-                disabled={status === "loading"}
-                className="h-16 w-full rounded-2xl bg-[#1157D8] px-10 text-base font-bold text-white transition hover:bg-[#0A39A8] disabled:cursor-not-allowed disabled:opacity-70 lg:w-auto"
-              >
-                {status === "loading" ? "Submitting..." : "Register"}
-              </button>
-            </form>
+                <input
+                  required
+                  type="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="Email address"
+                  className="h-16 rounded-2xl border border-white/10 bg-[#151B23] px-5 text-base text-white outline-none transition placeholder:text-white/38 focus:border-[#1157D8] focus:bg-[#18202A] focus:ring-4 focus:ring-[#1157D8]/18"
+                />
 
-            <div className="flex justify-center">
-              <p className="inline-flex items-start gap-2 rounded-full bg-white/75 px-4 py-2 text-sm font-medium text-[#4B5563] shadow-sm backdrop-blur">
+                <select
+                  required
+                  value={referralSource}
+                  onChange={(event) => setReferralSource(event.target.value)}
+                  className="h-16 rounded-2xl border border-white/10 bg-[#151B23] px-5 text-base text-white outline-none transition focus:border-[#1157D8] focus:bg-[#18202A] focus:ring-4 focus:ring-[#1157D8]/18"
+                >
+                  <option value="">Where did you hear about us?</option>
+                  {referralOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+
+                <button
+                  type="submit"
+                  disabled={status === "loading"}
+                  className="h-16 w-full rounded-2xl bg-[#1157D8] px-8 text-base font-bold text-white shadow-[0_14px_32px_rgba(17,87,216,0.24)] transition hover:bg-[#0A39A8] disabled:cursor-not-allowed disabled:opacity-70 lg:w-auto"
+                >
+                  {status === "loading" ? "Submitting..." : "Register"}
+                </button>
+              </form>
+
+              <p className="mt-4 inline-flex items-start gap-2 rounded-full border border-[#1157D8]/20 bg-[#1157D8]/10 px-4 py-2 text-sm font-medium text-white/70">
                 <span className="flex size-5 items-start justify-center rounded-full bg-[#1157D8] text-xs font-bold text-white">
                   ✓
                 </span>
                 Limited early access spots available.
               </p>
+
+              {status === "success" && (
+                <p className="mt-4 w-fit rounded-full bg-white px-5 py-3 text-sm font-semibold text-[#1157D8] shadow-sm">
+                  You’re in — we’ll email your 50% early access offer before launch.
+                </p>
+              )}
+
+              {status === "duplicate" && (
+                <p className="mt-4 w-fit rounded-full bg-white px-5 py-3 text-sm font-semibold text-[#1157D8] shadow-sm">
+                  You’re already registered — we’ll be in touch before launch.
+                </p>
+              )}
+
+              {status === "error" && (
+                <p className="mt-4 w-fit rounded-full bg-white px-5 py-3 text-sm font-semibold text-red-600 shadow-sm">
+                  Something went wrong. Please try again. {errorMessage}
+                </p>
+              )}
             </div>
-
-            {status === "success" && (
-              <p className="mx-auto mt-4 w-fit rounded-full bg-white/80 px-5 py-3 text-sm font-semibold text-[#1157D8] shadow-sm">
-                You’re in — we’ll email your 50% early access offer before launch.
-              </p>
-            )}
-
-            {status === "duplicate" && (
-              <p className="mx-auto mt-4 w-fit rounded-full bg-white/80 px-5 py-3 text-sm font-semibold text-[#1157D8] shadow-sm">
-                You’re already registered — we’ll be in touch before launch.
-              </p>
-            )}
-
-            {status === "error" && (
-              <p className="mx-auto mt-4 w-fit rounded-full bg-white/80 px-5 py-3 text-sm font-semibold text-red-600 shadow-sm">
-                Something went wrong. Please try again. {errorMessage}
-              </p>
-            )}
           </div>
         </div>
       </section>
