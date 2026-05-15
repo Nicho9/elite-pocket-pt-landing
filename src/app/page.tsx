@@ -241,14 +241,20 @@ export default function Home() {
         <div className="mx-auto w-full max-w-7xl">
           <div className="relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-[#111418] shadow-[0_28px_90px_rgba(0,0,0,0.42)]">
             <video
-              src="/hero/landing-hero-video.mp4"
               poster="/hero/landing-hero-poster.jpg"
               autoPlay
               muted
               loop
               playsInline
               className="aspect-[16/9] w-full object-cover"
-            />
+            >
+              <source
+                src="/hero/landing-hero-video-mobile.mp4"
+                media="(max-width: 767px)"
+                type="video/mp4"
+              />
+              <source src="/hero/landing-hero-video.mp4" type="video/mp4" />
+            </video>
             <div className="absolute bottom-0 left-0 hidden p-5 sm:block sm:p-8">
               <div className="max-w-[22rem] rounded-2xl border border-white/10 bg-black/45 px-5 py-4 backdrop-blur-md">
                 <p className="text-xs font-bold uppercase tracking-[0.24em] text-white/80">
