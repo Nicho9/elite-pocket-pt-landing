@@ -1,5 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 
+import { requireNewsletterAdmin } from "../auth";
+import { errorResponse, jsonResponse } from "../responses";
+
 type LatestLead = {
   id: string;
   name: string | null;
@@ -8,80 +11,50 @@ type LatestLead = {
   created_at: string | null;
 };
 
-function jsonResponse(body: Record<string, unknown>, status: number) {
-  return Response.json(body, { status });
-}
-
-function errorResponse(error: string, status: number) {
-  return jsonResponse({ success: false, error }, status);
-}
-
-function readBearerToken(request: Request) {
-  const authorization = request.headers.get("authorization") || "";
-  const [scheme, token] = authorization.split(" ");
-
-  if (scheme?.toLowerCase() !== "bearer" || !token?.trim()) {
-    return "";
-  }
-
-  return token.trim();
-}
-
 function readCount(count: number | null) {
   return typeof count === "number" ? count : 0;
 }
 
+function readSafeErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message.trim()) {
+    return error.message.trim();
+  }
+
+  if (typeof error === "object" && error) {
+    const details = error as {
+      message?: unknown;
+      code?: unknown;
+      details?: unknown;
+      hint?: unknown;
+    };
+
+    if (typeof details.message === "string" && details.message.trim()) {
+      return details.message.trim();
+    }
+
+    const fallbackDetails = [details.code, details.details, details.hint]
+      .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+      .join(" ");
+
+    if (fallbackDetails) {
+      return fallbackDetails;
+    }
+  }
+
+  return "Unknown Supabase query error.";
+}
+
 export async function GET(request: Request) {
-  const supabaseUrl = process.env.SB_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.SB_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    return errorResponse("Supabase authentication is not configured.", 500);
-  }
-
-  const token = readBearerToken(request);
-
-  if (!token) {
-    return errorResponse("Missing bearer token.", 401);
-  }
-
-  const authSupabase = createClient(supabaseUrl, supabaseAnonKey, {
-    global: {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    },
+  const admin = await requireNewsletterAdmin(request, {
+    routeName: "newsletter-summary",
+    serviceConfigError: "Newsletter admin service is not configured.",
   });
 
-  const { data: userData, error: userError } = await authSupabase.auth.getUser(token);
-
-  if (userError || !userData.user) {
-    return errorResponse("Invalid or expired session.", 401);
+  if ("error" in admin) {
+    return admin.error;
   }
 
-  const { data: profile, error: profileError } = await authSupabase
-    .from("User")
-    .select("role")
-    .eq("id", userData.user.id)
-    .maybeSingle();
-
-  if (profileError) {
-    console.error("Newsletter admin profile lookup error:", profileError);
-    return errorResponse("Could not verify admin access.", 500);
-  }
-
-  if (profile?.role !== "admin") {
-    return errorResponse("Admin access required.", 403);
-  }
-
-  const serviceRoleKey =
-    process.env.SB_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!serviceRoleKey) {
-    return errorResponse("Newsletter admin service is not configured.", 500);
-  }
-
-  const adminSupabase = createClient(supabaseUrl, serviceRoleKey);
+  const adminSupabase = createClient(admin.supabaseUrl, admin.serviceRoleKey);
 
   const [
     totalLeadsResult,
@@ -139,21 +112,70 @@ export async function GET(request: Request) {
       .eq("status", "sent"),
   ]);
 
-  const queryError =
-    totalLeadsResult.error ||
-    allNewsletterContactsResult.error ||
-    leadOnlyResult.error ||
-    activeMembersResult.error ||
-    unclearAppUsersResult.error ||
-    adminCountResult.error ||
-    latestLeadsResult.error ||
-    draftCountResult.error ||
-    pendingEmailCountResult.error ||
-    sentEmailCountResult.error;
+  const queryChecks = [
+    {
+      label: "total leads count",
+      failureMessage: "total leads count failed",
+      error: totalLeadsResult.error,
+    },
+    {
+      label: "all newsletter contacts count",
+      failureMessage: "all newsletter contacts count failed",
+      error: allNewsletterContactsResult.error,
+    },
+    {
+      label: "lead only count",
+      failureMessage: "lead only count failed",
+      error: leadOnlyResult.error,
+    },
+    {
+      label: "active members count",
+      failureMessage: "active members count failed",
+      error: activeMembersResult.error,
+    },
+    {
+      label: "unclear app users count",
+      failureMessage: "unclear app users count failed",
+      error: unclearAppUsersResult.error,
+    },
+    {
+      label: "admin count",
+      failureMessage: "admin count failed",
+      error: adminCountResult.error,
+    },
+    {
+      label: "latest leads",
+      failureMessage: "latest leads failed",
+      error: latestLeadsResult.error,
+    },
+    {
+      label: "draft count",
+      failureMessage: "draft count failed",
+      error: draftCountResult.error,
+    },
+    {
+      label: "pending email count",
+      failureMessage: "pending email count failed",
+      error: pendingEmailCountResult.error,
+    },
+    {
+      label: "sent email count",
+      failureMessage: "sent email count failed",
+      error: sentEmailCountResult.error,
+    },
+  ];
 
-  if (queryError) {
-    console.error("Newsletter admin summary query error:", queryError);
-    return errorResponse("Could not load newsletter summary.", 500);
+  const failedQuery = queryChecks.find((query) => query.error);
+
+  if (failedQuery?.error) {
+    console.error("Newsletter admin summary query error:", {
+      query: failedQuery.label,
+      message: readSafeErrorMessage(failedQuery.error),
+    });
+    return errorResponse(
+      `Could not load newsletter summary: ${failedQuery.failureMessage}.`,
+      500,
+    );
   }
 
   const allNewsletterContactsCount = readCount(allNewsletterContactsResult.count);

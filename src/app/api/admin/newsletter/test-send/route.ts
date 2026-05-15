@@ -1,5 +1,7 @@
-import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
+
+import { requireNewsletterAdmin } from "../auth";
+import { errorResponse, jsonResponse } from "../responses";
 
 type TestSendBody = {
   subject?: unknown;
@@ -9,25 +11,6 @@ type TestSendBody = {
   body?: unknown;
   testEmail?: unknown;
 };
-
-function jsonResponse(body: Record<string, unknown>, status: number) {
-  return Response.json(body, { status });
-}
-
-function errorResponse(error: string, status: number) {
-  return jsonResponse({ success: false, error }, status);
-}
-
-function readBearerToken(request: Request) {
-  const authorization = request.headers.get("authorization") || "";
-  const [scheme, token] = authorization.split(" ");
-
-  if (scheme?.toLowerCase() !== "bearer" || !token?.trim()) {
-    return "";
-  }
-
-  return token.trim();
-}
 
 function escapeHtml(value: string) {
   return value
@@ -98,46 +81,13 @@ function buildEmailHtml(payload: {
 }
 
 export async function POST(request: Request) {
-  const supabaseUrl = process.env.SB_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.SB_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    return errorResponse("Supabase authentication is not configured.", 500);
-  }
-
-  const token = readBearerToken(request);
-
-  if (!token) {
-    return errorResponse("Missing bearer token.", 401);
-  }
-
-  const authSupabase = createClient(supabaseUrl, supabaseAnonKey, {
-    global: {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    },
+  const admin = await requireNewsletterAdmin(request, {
+    routeName: "newsletter-test-send",
+    requireServiceRole: false,
   });
 
-  const { data: userData, error: userError } = await authSupabase.auth.getUser(token);
-
-  if (userError || !userData.user) {
-    return errorResponse("Invalid or expired session.", 401);
-  }
-
-  const { data: profile, error: profileError } = await authSupabase
-    .from("User")
-    .select("role")
-    .eq("id", userData.user.id)
-    .maybeSingle();
-
-  if (profileError) {
-    console.error("Newsletter test-send admin profile lookup error:", profileError);
-    return errorResponse("Could not verify admin access.", 500);
-  }
-
-  if (profile?.role !== "admin") {
-    return errorResponse("Admin access required.", 403);
+  if ("error" in admin) {
+    return admin.error;
   }
 
   const resendApiKey = process.env.RESEND_API_KEY;

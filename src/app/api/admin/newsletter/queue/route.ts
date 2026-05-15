@@ -1,5 +1,8 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
+import { requireNewsletterAdmin } from "../auth";
+import { errorResponse, jsonResponse } from "../responses";
+
 type QueueRequestBody = {
   draftId?: unknown;
 };
@@ -36,14 +39,6 @@ const canonicalAudiences: QueueAudience[] = [
   "unclear_app_users",
 ];
 
-function jsonResponse(body: Record<string, unknown>, status: number) {
-  return Response.json(body, { status });
-}
-
-function errorResponse(error: string, status: number) {
-  return jsonResponse({ success: false, error }, status);
-}
-
 function readSafeErrorMessage(error: unknown) {
   if (error instanceof Error) {
     return error.message;
@@ -55,17 +50,6 @@ function readSafeErrorMessage(error: unknown) {
   }
 
   return "Unknown error";
-}
-
-function readBearerToken(request: Request) {
-  const authorization = request.headers.get("authorization") || "";
-  const [scheme, token] = authorization.split(" ");
-
-  if (scheme?.toLowerCase() !== "bearer" || !token?.trim()) {
-    return "";
-  }
-
-  return token.trim();
 }
 
 function resolveAudience(value: unknown): QueueAudience | null {
@@ -83,63 +67,10 @@ function resolveAudience(value: unknown): QueueAudience | null {
 }
 
 async function requireAdmin(request: Request) {
-  const supabaseUrl = process.env.SB_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.SB_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    return {
-      error: errorResponse("Supabase authentication is not configured.", 500),
-    };
-  }
-
-  const token = readBearerToken(request);
-
-  if (!token) {
-    return { error: errorResponse("Missing bearer token.", 401) };
-  }
-
-  const authSupabase = createClient(supabaseUrl, supabaseAnonKey, {
-    global: {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    },
+  return requireNewsletterAdmin(request, {
+    routeName: "newsletter-queue",
+    serviceConfigError: "Newsletter queue service is not configured.",
   });
-
-  const { data: userData, error: userError } = await authSupabase.auth.getUser(token);
-
-  if (userError || !userData.user) {
-    return { error: errorResponse("Invalid or expired session.", 401) };
-  }
-
-  const { data: profile, error: profileError } = await authSupabase
-    .from("User")
-    .select("role")
-    .eq("id", userData.user.id)
-    .maybeSingle();
-
-  if (profileError) {
-    console.error("Newsletter queue admin profile lookup error:", profileError);
-    return { error: errorResponse("Could not verify admin access.", 500) };
-  }
-
-  if (profile?.role !== "admin") {
-    return { error: errorResponse("Admin access required.", 403) };
-  }
-
-  const serviceRoleKey =
-    process.env.SB_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!serviceRoleKey) {
-    return { error: errorResponse("Newsletter queue service is not configured.", 500) };
-  }
-
-  return {
-    supabaseUrl,
-    serviceRoleKey,
-    adminUserId: userData.user.id,
-    adminEmail: userData.user.email || "",
-  };
 }
 
 async function loadRecipients(supabase: SupabaseClient, audience: QueueAudience) {
