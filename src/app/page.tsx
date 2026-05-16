@@ -705,12 +705,13 @@ export default function Home() {
           <h2 className="text-center text-3xl font-bold tracking-tight text-[#0B1220] sm:text-4xl">
             Pricing
           </h2>
-          <div className="mt-10 grid gap-8 lg:grid-cols-2">
+          <div className="mt-10 grid gap-8 lg:grid-cols-3">
             {[
               {
                 title: "Full App Access",
                 price: "$49",
-                smallText: "Also available in GBP and AED at checkout",
+                smallText:
+                  "The complete Elite Pocket PT system for athletes who want structured training, nutrition, mobility, progress tracking, coaching feedback, and community support in one place.",
                 includes: [
                   "Training",
                   "Nutrition",
@@ -720,22 +721,45 @@ export default function Home() {
                   "Community",
                 ],
                 buttonText: "Start your training",
+                href: "#early-access",
                 note: "Cancel anytime. Manage your account online.",
+                showMonthlySuffix: true,
               },
               {
                 title: "VIP Coaching",
                 price: "$199",
                 smallText:
-                  "Includes full app access plus full coaching support directly from Coach Mike",
+                  "Full app access plus high-touch coaching directly from Coach Mike, including personalised feedback, video calls, WhatsApp support, unlimited webinar access, and deeper accountability.",
                 includes: [
                   "Everything in Full App Access",
                   "Full coaching support directly from Coach Mike",
                   "2 x 30-minute one-to-one video calls per month",
                   "24/7 WhatsApp support",
-                  "1 community coaching call per month",
+                  "Unlimited webinar access",
                 ],
                 buttonText: "Apply for VIP coaching",
+                href: "#early-access",
                 note: "Limited availability for high-touch coaching clients.",
+                showMonthlySuffix: true,
+              },
+              {
+                title: "Corporate Packages",
+                price: "Custom pricing",
+                smallText:
+                  "Built for companies, gyms, and sports teams that want to improve performance, health, accountability, and team culture through structured training and nutrition support.",
+                includes: [
+                  "Corporate performance programmes",
+                  "Company leaderboards",
+                  "Corporate performance challenges",
+                  "Structured training support",
+                  "Nutrition support",
+                  "Webinar access",
+                  "Direct coaching support",
+                ],
+                buttonText: "Corporate enquiry",
+                href: "mailto:mike@elitepocketpt.com",
+                note: "Built around your organisation, team size, and performance goals.",
+                showMonthlySuffix: false,
               },
             ].map((plan) => (
               <div
@@ -747,10 +771,15 @@ export default function Home() {
                     {plan.title}
                   </p>
                   <p className="mt-4 text-5xl font-bold tracking-tight text-[#0B1220]">
-                    {plan.price}{" "}
-                    <span className="text-2xl font-semibold text-[#4B5563]">
-                      / month
-                    </span>
+                    {plan.price}
+                    {plan.showMonthlySuffix !== false && (
+                      <>
+                        {" "}
+                        <span className="text-2xl font-semibold text-[#4B5563]">
+                          / month
+                        </span>
+                      </>
+                    )}
                   </p>
                   <p className="mt-3 text-sm font-medium leading-6 text-[#6B7280]">
                     {plan.smallText}
@@ -778,7 +807,7 @@ export default function Home() {
 
                 <div className="mt-8">
                   <a
-                    href="#early-access"
+                    href={plan.href || "#early-access"}
                     className="inline-flex w-full justify-center rounded-full bg-[#1157D8] px-8 py-4 text-base font-bold text-white shadow-[0_16px_40px_rgba(17,87,216,0.28)] transition hover:bg-[#0A39A8]"
                   >
                     {plan.buttonText}
