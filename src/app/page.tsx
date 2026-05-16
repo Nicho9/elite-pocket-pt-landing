@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -32,6 +32,7 @@ function getTimeLeft() {
 }
 
 export default function Home() {
+  const heroVideoRef = useRef<HTMLVideoElement | null>(null);
   const [timeLeft, setTimeLeft] = useState<ReturnType<typeof getTimeLeft> | null>(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -40,6 +41,7 @@ export default function Home() {
   const [errorMessage, setErrorMessage] = useState("");
   const [activeCoachImage, setActiveCoachImage] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(false);
 
   useEffect(() => {
     const initialTimer = window.setTimeout(() => {
@@ -63,6 +65,22 @@ export default function Home() {
 
     return () => window.clearInterval(timer);
   }, []);
+
+  function handleToggleHeroSound() {
+    const video = heroVideoRef.current;
+    if (!video) return;
+
+    const nextSoundEnabled = !soundEnabled;
+    video.muted = !nextSoundEnabled;
+    setSoundEnabled(nextSoundEnabled);
+
+    if (video.paused) {
+      void video.play().catch(() => {
+        video.muted = true;
+        setSoundEnabled(false);
+      });
+    }
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -241,9 +259,10 @@ export default function Home() {
         <div className="mx-auto w-full max-w-7xl">
           <div className="relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-[#111418] shadow-[0_28px_90px_rgba(0,0,0,0.42)]">
             <video
+              ref={heroVideoRef}
               poster="/hero/landing-hero-poster.jpg"
               autoPlay
-              muted
+              muted={!soundEnabled}
               loop
               playsInline
               className="aspect-[16/9] w-full object-cover"
@@ -265,6 +284,29 @@ export default function Home() {
                 </p>
               </div>
             </div>
+            <button
+              type="button"
+              onClick={handleToggleHeroSound}
+              aria-label={soundEnabled ? "Mute hero video" : "Play hero video sound"}
+              className="absolute bottom-5 right-5 z-20 flex size-11 items-center justify-center rounded-full border border-white/10 bg-black/45 text-white backdrop-blur-md transition hover:bg-black/60 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#1157D8]/30 sm:size-12"
+            >
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                className="size-5 sm:size-6"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z" />
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                <path d="M12 19v3" />
+                <path d="M8 22h8" />
+                {!soundEnabled && <path d="M4 4l16 16" />}
+              </svg>
+            </button>
           </div>
 
           <div className="mx-auto mt-4 max-w-sm text-center sm:hidden">
