@@ -863,6 +863,22 @@ export default function Home() {
           </div>
         </div>
       </section>
+      <footer className="border-t border-[#E5E7EB] bg-[#F5F7FB] px-5 py-8">
+        <div className="mx-auto flex max-w-6xl flex-wrap justify-center gap-x-6 gap-y-3 text-sm font-semibold text-[#4B5563]">
+          <Link href="/privacy" className="transition hover:text-[#1157D8]">
+            Privacy Policy
+          </Link>
+          <Link href="/terms" className="transition hover:text-[#1157D8]">
+            Terms
+          </Link>
+          <Link href="/delete-account" className="transition hover:text-[#1157D8]">
+            Delete Account
+          </Link>
+          <Link href="/support" className="transition hover:text-[#1157D8]">
+            Support
+          </Link>
+        </div>
+      </footer>
       </main>
     </>
   );
