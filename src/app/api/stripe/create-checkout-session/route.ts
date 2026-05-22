@@ -2,6 +2,8 @@ import Stripe from "stripe";
 
 export const runtime = "nodejs";
 
+type CheckoutPlan = "full_app" | "vip";
+
 type CheckoutRequestBody = {
   name?: unknown;
   email?: unknown;
@@ -12,6 +14,7 @@ type CheckoutRequestBody = {
 type CheckoutEnv = {
   stripeSecretKey: string;
   stripeFullAppPriceId: string;
+  stripeVipPriceId: string;
   siteUrl: string;
   supabaseUrl: string;
   websiteSignupSecret: string;
@@ -36,6 +39,7 @@ function jsonResponse(body: Record<string, unknown>, status: number) {
 function getRequiredEnv(): CheckoutEnv | null {
   const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
   const stripeFullAppPriceId = process.env.STRIPE_FULL_APP_PRICE_ID;
+  const stripeVipPriceId = process.env.STRIPE_VIP_PRICE_ID;
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
   const supabaseUrl = process.env.SB_URL;
   const websiteSignupSecret = process.env.WEBSITE_SIGNUP_SECRET;
@@ -43,6 +47,7 @@ function getRequiredEnv(): CheckoutEnv | null {
   if (
     !stripeSecretKey ||
     !stripeFullAppPriceId ||
+    !stripeVipPriceId ||
     !siteUrl ||
     !supabaseUrl ||
     !websiteSignupSecret
@@ -53,6 +58,7 @@ function getRequiredEnv(): CheckoutEnv | null {
   return {
     stripeSecretKey,
     stripeFullAppPriceId,
+    stripeVipPriceId,
     siteUrl: siteUrl.replace(/\/+$/, ""),
     supabaseUrl: supabaseUrl.replace(/\/+$/, ""),
     websiteSignupSecret,
@@ -61,6 +67,10 @@ function getRequiredEnv(): CheckoutEnv | null {
 
 function getString(value: unknown) {
   return typeof value === "string" ? value : "";
+}
+
+function isCheckoutPlan(value: unknown): value is CheckoutPlan {
+  return value === "full_app" || value === "vip";
 }
 
 function getSupabaseError(payload: WebsiteSignupResponse | null) {
@@ -128,6 +138,7 @@ export async function POST(request: Request) {
   const name = getString(body.name).trim();
   const email = getString(body.email).trim().toLowerCase();
   const password = getString(body.password);
+  const plan = body.plan;
 
   if (!name) {
     return jsonResponse({ success: false, error: "Name is required." }, 400);
@@ -144,8 +155,8 @@ export async function POST(request: Request) {
     );
   }
 
-  if (body.plan !== "full_app") {
-    return jsonResponse({ success: false, error: "Plan must be full_app." }, 400);
+  if (!isCheckoutPlan(plan)) {
+    return jsonResponse({ success: false, error: "Plan must be full_app or vip." }, 400);
   }
 
   try {
@@ -190,20 +201,24 @@ export async function POST(request: Request) {
     }
 
     const stripe = new Stripe(env.stripeSecretKey);
+    const priceId = plan === "vip" ? env.stripeVipPriceId : env.stripeFullAppPriceId;
+    const metadata: Stripe.MetadataParam = {
+      user_id: userId,
+      plan,
+    };
+
+    if (plan === "vip") {
+      metadata.tier = "vip";
+    }
+
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
-      line_items: [{ price: env.stripeFullAppPriceId, quantity: 1 }],
+      line_items: [{ price: priceId, quantity: 1 }],
       customer_email: email,
       client_reference_id: userId,
-      metadata: {
-        user_id: userId,
-        plan: "full_app",
-      },
+      metadata,
       subscription_data: {
-        metadata: {
-          user_id: userId,
-          plan: "full_app",
-        },
+        metadata,
       },
       success_url: `${env.siteUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${env.siteUrl}/checkout/cancelled`,

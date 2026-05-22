@@ -20,7 +20,7 @@ const coachMikeImages = [
   "/hero/coach-mike-athlete.png",
 ];
 
-type CheckoutPlan = "full_app";
+type CheckoutPlan = "full_app" | "vip";
 type CheckoutStatus = "idle" | "loading" | "error";
 
 function getTimeLeft() {
@@ -182,9 +182,9 @@ export default function Home() {
       return;
     }
 
-    if (selectedCheckoutPlan !== "full_app") {
+    if (!selectedCheckoutPlan) {
       setCheckoutStatus("error");
-      setCheckoutErrorMessage("Please select Full App Access to continue.");
+      setCheckoutErrorMessage("Please select a checkout plan to continue.");
       return;
     }
 
@@ -200,7 +200,7 @@ export default function Home() {
           name: trimmedName,
           email: trimmedEmail,
           password: checkoutPassword,
-          plan: "full_app",
+          plan: selectedCheckoutPlan,
         }),
       });
 
@@ -239,6 +239,12 @@ export default function Home() {
     ["Minutes", timeLeft?.minutes],
     ["Seconds", timeLeft?.seconds],
   ];
+  const checkoutPlanLabel =
+    selectedCheckoutPlan === "vip" ? "VIP Coaching" : "Full App Access";
+  const checkoutTitle =
+    selectedCheckoutPlan === "vip"
+      ? "Create your VIP Coaching account"
+      : "Create your Elite Pocket PT account";
 
   return (
     <>
@@ -894,6 +900,7 @@ export default function Home() {
                 href: "#early-access",
                 note: "Limited availability for high-touch coaching clients.",
                 showMonthlySuffix: true,
+                checkoutPlan: "vip" as const,
               },
               {
                 title: "Corporate Packages",
@@ -1002,7 +1009,7 @@ export default function Home() {
       </footer>
       </main>
 
-      {selectedCheckoutPlan === "full_app" && (
+      {selectedCheckoutPlan && (
         <div
           className="fixed inset-0 z-[70] flex items-center justify-center bg-[#05070D]/78 px-5 py-8 backdrop-blur-md"
           role="dialog"
@@ -1021,13 +1028,13 @@ export default function Home() {
             <div className="flex items-start justify-between gap-5 border-b border-white/10 pb-5">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#6EA8FF]">
-                  Full App Access
+                  {checkoutPlanLabel}
                 </p>
                 <h2
                   id="checkout-title"
                   className="mt-3 text-2xl font-bold tracking-tight text-white sm:text-3xl"
                 >
-                  Create your Elite Pocket PT account
+                  {checkoutTitle}
                 </h2>
                 <p className="mt-3 text-sm font-medium leading-6 text-white/68 sm:text-base">
                   Set up your account, then continue to secure Stripe checkout.
