@@ -20,6 +20,9 @@ const coachMikeImages = [
   "/hero/coach-mike-athlete.png",
 ];
 
+type CheckoutPlan = "full_app";
+type CheckoutStatus = "idle" | "loading" | "error";
+
 function getTimeLeft() {
   const difference = Math.max(launchDate - Date.now(), 0);
 
@@ -42,6 +45,13 @@ export default function Home() {
   const [activeCoachImage, setActiveCoachImage] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(false);
+  const [selectedCheckoutPlan, setSelectedCheckoutPlan] = useState<CheckoutPlan | null>(null);
+  const [checkoutName, setCheckoutName] = useState("");
+  const [checkoutEmail, setCheckoutEmail] = useState("");
+  const [checkoutPassword, setCheckoutPassword] = useState("");
+  const [checkoutConfirmPassword, setCheckoutConfirmPassword] = useState("");
+  const [checkoutStatus, setCheckoutStatus] = useState<CheckoutStatus>("idle");
+  const [checkoutErrorMessage, setCheckoutErrorMessage] = useState("");
 
   useEffect(() => {
     const initialTimer = window.setTimeout(() => {
@@ -120,6 +130,106 @@ export default function Home() {
     } catch (error) {
       console.error("Waitlist submission error:", error);
       setStatus("error");
+    }
+  }
+
+  function openCheckout(plan: CheckoutPlan) {
+    setSelectedCheckoutPlan(plan);
+    setCheckoutStatus("idle");
+    setCheckoutErrorMessage("");
+  }
+
+  function closeCheckout() {
+    if (checkoutStatus === "loading") return;
+
+    setSelectedCheckoutPlan(null);
+    setCheckoutStatus("idle");
+    setCheckoutErrorMessage("");
+    setCheckoutPassword("");
+    setCheckoutConfirmPassword("");
+  }
+
+  async function handleCheckoutSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const trimmedName = checkoutName.trim();
+    const trimmedEmail = checkoutEmail.trim().toLowerCase();
+
+    setCheckoutStatus("idle");
+    setCheckoutErrorMessage("");
+
+    if (!trimmedName) {
+      setCheckoutStatus("error");
+      setCheckoutErrorMessage("Full name is required.");
+      return;
+    }
+
+    if (!trimmedEmail) {
+      setCheckoutStatus("error");
+      setCheckoutErrorMessage("Email is required.");
+      return;
+    }
+
+    if (checkoutPassword.length < 8) {
+      setCheckoutStatus("error");
+      setCheckoutErrorMessage("Password must be at least 8 characters.");
+      return;
+    }
+
+    if (checkoutPassword !== checkoutConfirmPassword) {
+      setCheckoutStatus("error");
+      setCheckoutErrorMessage("Passwords do not match.");
+      return;
+    }
+
+    if (selectedCheckoutPlan !== "full_app") {
+      setCheckoutStatus("error");
+      setCheckoutErrorMessage("Please select Full App Access to continue.");
+      return;
+    }
+
+    setCheckoutStatus("loading");
+
+    try {
+      const response = await fetch("/api/stripe/create-checkout-session", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: trimmedName,
+          email: trimmedEmail,
+          password: checkoutPassword,
+          plan: "full_app",
+        }),
+      });
+
+      const result: unknown = await response.json();
+      const checkoutUrl =
+        typeof result === "object" &&
+        result !== null &&
+        "url" in result &&
+        typeof result.url === "string"
+          ? result.url
+          : "";
+      const apiError =
+        typeof result === "object" &&
+        result !== null &&
+        "error" in result &&
+        typeof result.error === "string"
+          ? result.error
+          : "";
+
+      if (response.ok && checkoutUrl) {
+        window.location.href = checkoutUrl;
+        return;
+      }
+
+      setCheckoutStatus("error");
+      setCheckoutErrorMessage(apiError || "Could not start checkout. Please try again.");
+    } catch {
+      setCheckoutStatus("error");
+      setCheckoutErrorMessage("Could not start checkout. Please try again.");
     }
   }
 
@@ -766,6 +876,7 @@ export default function Home() {
                 href: "#early-access",
                 note: "Cancel anytime. Manage your account online.",
                 showMonthlySuffix: true,
+                checkoutPlan: "full_app" as const,
               },
               {
                 title: "VIP Coaching",
@@ -848,12 +959,22 @@ export default function Home() {
                 </div>
 
                 <div className="mt-8">
-                  <a
-                    href={plan.href || "#early-access"}
-                    className="inline-flex w-full justify-center rounded-full bg-[#1157D8] px-8 py-4 text-base font-bold text-white shadow-[0_16px_40px_rgba(17,87,216,0.28)] transition hover:bg-[#0A39A8]"
-                  >
-                    {plan.buttonText}
-                  </a>
+                  {plan.checkoutPlan ? (
+                    <button
+                      type="button"
+                      onClick={() => openCheckout(plan.checkoutPlan)}
+                      className="inline-flex w-full justify-center rounded-full bg-[#1157D8] px-8 py-4 text-base font-bold text-white shadow-[0_16px_40px_rgba(17,87,216,0.28)] transition hover:bg-[#0A39A8]"
+                    >
+                      {plan.buttonText}
+                    </button>
+                  ) : (
+                    <a
+                      href={plan.href || "#early-access"}
+                      className="inline-flex w-full justify-center rounded-full bg-[#1157D8] px-8 py-4 text-base font-bold text-white shadow-[0_16px_40px_rgba(17,87,216,0.28)] transition hover:bg-[#0A39A8]"
+                    >
+                      {plan.buttonText}
+                    </a>
+                  )}
                   <p className="mt-4 text-sm font-medium text-[#6B7280]">
                     {plan.note}
                   </p>
@@ -880,6 +1001,127 @@ export default function Home() {
         </div>
       </footer>
       </main>
+
+      {selectedCheckoutPlan === "full_app" && (
+        <div
+          className="fixed inset-0 z-[70] flex items-center justify-center bg-[#05070D]/78 px-5 py-8 backdrop-blur-md"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="checkout-title"
+        >
+          <button
+            type="button"
+            aria-label="Close checkout signup"
+            onClick={closeCheckout}
+            disabled={checkoutStatus === "loading"}
+            className="absolute inset-0 cursor-default disabled:cursor-wait"
+          />
+
+          <div className="relative max-h-[calc(100vh-4rem)] w-full max-w-xl overflow-y-auto rounded-[2rem] border border-white/10 bg-[#0E1319] p-5 text-white shadow-[0_32px_100px_rgba(0,0,0,0.5)] ring-1 ring-[#1157D8]/20 sm:p-7">
+            <div className="flex items-start justify-between gap-5 border-b border-white/10 pb-5">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#6EA8FF]">
+                  Full App Access
+                </p>
+                <h2
+                  id="checkout-title"
+                  className="mt-3 text-2xl font-bold tracking-tight text-white sm:text-3xl"
+                >
+                  Create your Elite Pocket PT account
+                </h2>
+                <p className="mt-3 text-sm font-medium leading-6 text-white/68 sm:text-base">
+                  Set up your account, then continue to secure Stripe checkout.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={closeCheckout}
+                disabled={checkoutStatus === "loading"}
+                className="shrink-0 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-bold text-white/78 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Close
+              </button>
+            </div>
+
+            <form onSubmit={handleCheckoutSubmit} className="mt-6 grid gap-4">
+              <label className="grid gap-2 text-sm font-bold text-white/84">
+                Full name
+                <input
+                  required
+                  value={checkoutName}
+                  onChange={(event) => setCheckoutName(event.target.value)}
+                  autoComplete="name"
+                  className="h-14 rounded-2xl border border-white/10 bg-[#151B23] px-5 text-base font-medium text-white outline-none transition placeholder:text-white/38 focus:border-[#1157D8] focus:bg-[#18202A] focus:ring-4 focus:ring-[#1157D8]/18"
+                />
+              </label>
+
+              <label className="grid gap-2 text-sm font-bold text-white/84">
+                Email
+                <input
+                  required
+                  type="email"
+                  value={checkoutEmail}
+                  onChange={(event) => setCheckoutEmail(event.target.value)}
+                  autoComplete="email"
+                  className="h-14 rounded-2xl border border-white/10 bg-[#151B23] px-5 text-base font-medium text-white outline-none transition placeholder:text-white/38 focus:border-[#1157D8] focus:bg-[#18202A] focus:ring-4 focus:ring-[#1157D8]/18"
+                />
+              </label>
+
+              <label className="grid gap-2 text-sm font-bold text-white/84">
+                Password
+                <input
+                  required
+                  type="password"
+                  value={checkoutPassword}
+                  onChange={(event) => setCheckoutPassword(event.target.value)}
+                  autoComplete="new-password"
+                  className="h-14 rounded-2xl border border-white/10 bg-[#151B23] px-5 text-base font-medium text-white outline-none transition placeholder:text-white/38 focus:border-[#1157D8] focus:bg-[#18202A] focus:ring-4 focus:ring-[#1157D8]/18"
+                />
+              </label>
+
+              <label className="grid gap-2 text-sm font-bold text-white/84">
+                Confirm password
+                <input
+                  required
+                  type="password"
+                  value={checkoutConfirmPassword}
+                  onChange={(event) => setCheckoutConfirmPassword(event.target.value)}
+                  autoComplete="new-password"
+                  className="h-14 rounded-2xl border border-white/10 bg-[#151B23] px-5 text-base font-medium text-white outline-none transition placeholder:text-white/38 focus:border-[#1157D8] focus:bg-[#18202A] focus:ring-4 focus:ring-[#1157D8]/18"
+                />
+              </label>
+
+              {checkoutStatus === "error" && (
+                <p className="rounded-2xl border border-red-400/25 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-100">
+                  {checkoutErrorMessage}
+                </p>
+              )}
+
+              <div className="mt-2 grid gap-3 sm:grid-cols-[1fr_auto]">
+                <button
+                  type="submit"
+                  disabled={checkoutStatus === "loading"}
+                  className="h-14 rounded-full bg-[#1157D8] px-7 text-base font-bold text-white shadow-[0_16px_40px_rgba(17,87,216,0.3)] transition hover:bg-[#0A39A8] disabled:cursor-wait disabled:opacity-70"
+                >
+                  {checkoutStatus === "loading"
+                    ? "Opening checkout..."
+                    : "Continue to secure checkout"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={closeCheckout}
+                  disabled={checkoutStatus === "loading"}
+                  className="h-14 rounded-full border border-white/10 bg-white/5 px-7 text-base font-bold text-white/82 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </>
   );
 }
