@@ -20,10 +20,32 @@ function ResetPasswordForm() {
 
     async function loadRecoverySession() {
       setErrorMessage("");
+      setIsSessionReady(false);
 
+      const tokenHash = searchParams.get("token_hash");
+      const type = searchParams.get("type");
       const code = searchParams.get("code");
 
-      if (code) {
+      if (tokenHash) {
+        if (type !== "recovery") {
+          setErrorMessage("Invalid password reset link. Please request a new reset email.");
+          return;
+        }
+
+        const { error } = await supabase.auth.verifyOtp({
+          type: "recovery",
+          token_hash: tokenHash,
+        });
+
+        if (!isMounted) {
+          return;
+        }
+
+        if (error) {
+          setErrorMessage(error.message);
+          return;
+        }
+      } else if (code) {
         const { error } = await supabase.auth.exchangeCodeForSession(code);
 
         if (!isMounted) {
@@ -48,7 +70,7 @@ function ResetPasswordForm() {
       }
 
       if (!data.session) {
-        setErrorMessage("Password reset session not found. Please use the latest reset link from your email.");
+        setErrorMessage("Password reset session not found. Please request a new reset email and use the latest link.");
         return;
       }
 
