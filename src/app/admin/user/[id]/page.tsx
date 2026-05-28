@@ -502,6 +502,26 @@ function getActualResultSummary(actualResult: unknown) {
     return "No result logged";
   }
 
+  const getSetsFromSummary = (summary: unknown): unknown[] | null => {
+    if (typeof summary !== "string") {
+      return null;
+    }
+
+    const trimmedSummary = summary.trim();
+
+    if (!trimmedSummary.startsWith("sets:")) {
+      return null;
+    }
+
+    try {
+      const parsedSets = JSON.parse(trimmedSummary.slice("sets:".length).trim());
+
+      return Array.isArray(parsedSets) ? parsedSets : null;
+    } catch {
+      return null;
+    }
+  };
+
   if (typeof actualResult === "string") {
     const trimmedResult = actualResult.trim();
 
@@ -526,17 +546,27 @@ function getActualResultSummary(actualResult: unknown) {
     }
 
     const setRecord = set as Record<string, unknown>;
+    const reps = setRecord.reps ?? setRecord.actual_reps ?? setRecord.firstFieldValue;
     const weight =
-      setRecord.weight_kg ||
-      setRecord.weight ||
-      setRecord.load_kg ||
-      setRecord.load ||
-      setRecord.actual_weight;
-    const rpe = setRecord.rpe || setRecord.actual_rpe;
-    const weightText = weight ? `${formatValue(String(weight))} kg` : "weight not logged";
-    const rpeText = rpe ? `RPE ${formatValue(String(rpe))}` : "RPE not logged";
+      setRecord.weight_kg ??
+      setRecord.weight ??
+      setRecord.load_kg ??
+      setRecord.load ??
+      setRecord.actual_weight ??
+      setRecord.actualWeight ??
+      setRecord.actual_load;
+    const rpe = setRecord.rpe ?? setRecord.actual_rpe ?? setRecord.actualRpe;
+    const done = setRecord.done;
+    const setParts = [
+      ...(reps !== null && reps !== undefined ? [`${formatValue(String(reps))} reps`] : []),
+      weight !== null && weight !== undefined
+        ? `${formatValue(String(weight))} kg`
+        : "weight not logged",
+      rpe !== null && rpe !== undefined ? `RPE ${formatValue(String(rpe))}` : "RPE not logged",
+      ...(done === false ? ["not completed"] : []),
+    ];
 
-    return `Set ${index + 1}: ${weightText}, ${rpeText}`;
+    return `Set ${index + 1}: ${setParts.join(", ")}`;
   };
 
   if (Array.isArray(actualResult)) {
@@ -545,7 +575,9 @@ function getActualResultSummary(actualResult: unknown) {
 
   if (typeof actualResult === "object") {
     const resultRecord = actualResult as Record<string, unknown>;
+    const summarySets = getSetsFromSummary(resultRecord.summary);
     const possibleSets =
+      summarySets ||
       resultRecord.sets ||
       resultRecord.completed_sets ||
       resultRecord.actual_sets ||
