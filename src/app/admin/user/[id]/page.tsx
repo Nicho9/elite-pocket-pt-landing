@@ -33,11 +33,13 @@ type WorkoutSession = {
 };
 
 type WorkoutExerciseLog = {
-  block: string | null;
+  block_type: string | null;
+  block_name: string | null;
   display_name: string | null;
-  sets: number | string | null;
-  reps: number | string | null;
+  prescribed: unknown;
   actual_result: unknown;
+  completed?: boolean | null;
+  skipped?: boolean | null;
 };
 
 type NutritionLog = {
@@ -380,8 +382,48 @@ function getFirstPhotoUrl(photos: unknown): string | null {
   return getPhotoUrl(photos);
 }
 
+function getRecord(value: unknown): Record<string, unknown> | null {
+  if (!value) {
+    return null;
+  }
+
+  if (typeof value === "string") {
+    const trimmedValue = value.trim();
+
+    if (!trimmedValue || (!trimmedValue.startsWith("{") && !trimmedValue.startsWith("["))) {
+      return null;
+    }
+
+    try {
+      return getRecord(JSON.parse(trimmedValue));
+    } catch {
+      return null;
+    }
+  }
+
+  if (typeof value === "object" && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+
+  return null;
+}
+
+function getReadableJsonValue(value: unknown): string | null {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? String(value) : null;
+  }
+
+  if (typeof value === "string") {
+    const trimmedValue = value.trim();
+
+    return trimmedValue || null;
+  }
+
+  return null;
+}
+
 function getWorkoutExerciseBlock(exercise: WorkoutExerciseLog) {
-  return exercise.block || "Other";
+  return exercise.block_name?.trim() || exercise.block_type?.trim() || "Other";
 }
 
 function groupWorkoutExercisesByBlock(exercises: WorkoutExerciseLog[]) {
@@ -399,14 +441,60 @@ function groupWorkoutExercisesByBlock(exercises: WorkoutExerciseLog[]) {
 }
 
 function getPrescribedExerciseSummary(exercise: WorkoutExerciseLog) {
-  const sets = formatValue(exercise.sets);
-  const reps = formatValue(exercise.reps);
+  const prescribed = getRecord(exercise.prescribed);
 
-  if (sets === "Not set" && reps === "Not set") {
+  if (!prescribed) {
     return "Not set";
   }
 
-  return `${sets} sets x ${reps} reps`;
+  const prescriptionLine = getReadableJsonValue(prescribed.prescription_line);
+
+  if (prescriptionLine) {
+    return prescriptionLine;
+  }
+
+  const sets = getReadableJsonValue(prescribed.sets);
+  const reps = getReadableJsonValue(prescribed.reps);
+  const rpe = getReadableJsonValue(prescribed.rpe);
+  const load = getReadableJsonValue(prescribed.load);
+  const restSeconds = getReadableJsonValue(prescribed.rest_seconds);
+  const prescriptionParts: string[] = [];
+
+  if (sets && reps) {
+    prescriptionParts.push(`${sets} sets x ${reps} reps`);
+  } else {
+    if (sets) {
+      prescriptionParts.push(`${sets} sets`);
+    }
+
+    if (reps) {
+      prescriptionParts.push(`${reps} reps`);
+    }
+  }
+
+  if (rpe) {
+    const lastPart = prescriptionParts[prescriptionParts.length - 1];
+
+    if (lastPart) {
+      prescriptionParts[prescriptionParts.length - 1] = `${lastPart} @ RPE ${rpe}`;
+    } else {
+      prescriptionParts.push(`RPE ${rpe}`);
+    }
+  }
+
+  if (load) {
+    prescriptionParts.push(`load ${load}`);
+  }
+
+  if (restSeconds) {
+    prescriptionParts.push(`rest ${restSeconds}s`);
+  }
+
+  if (prescriptionParts.length === 0) {
+    return "Not set";
+  }
+
+  return prescriptionParts.join(", ");
 }
 
 function getActualResultSummary(actualResult: unknown) {
@@ -820,7 +908,7 @@ export default function AdminUserPage() {
     const { data, error } = await supabase
       .schema("public")
       .from("admin_workout_exercise_log_detail")
-      .select("block,display_name,sets,reps,actual_result")
+      .select("block_type,block_name,display_name,prescribed,actual_result,completed,skipped")
       .eq("session_log_id", sessionId);
 
     if (error) {
