@@ -90,6 +90,13 @@ type StrengthMetric = {
   date_tested: string | null;
 };
 
+type BodyweightLog = {
+  date: string | null;
+  weight_kg: number | null;
+  body_fat_percentage: number | null;
+  notes: string | null;
+};
+
 const tabs = ["Overview", "Nutrition", "Workouts", "Community", "Progress"] as const;
 
 type ActiveTab = (typeof tabs)[number];
@@ -665,6 +672,8 @@ export default function AdminUserPage() {
   const [progressErrorMessage, setProgressErrorMessage] = useState("");
   const [strengthMetrics, setStrengthMetrics] = useState<StrengthMetric[]>([]);
   const [strengthMetricsErrorMessage, setStrengthMetricsErrorMessage] = useState("");
+  const [bodyweightLogs, setBodyweightLogs] = useState<BodyweightLog[]>([]);
+  const [bodyweightLogsErrorMessage, setBodyweightLogsErrorMessage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [activeTab, setActiveTab] = useState<ActiveTab>("Overview");
@@ -741,6 +750,7 @@ export default function AdminUserPage() {
           setIsLoadingProgress(true);
           setProgressErrorMessage("");
           setStrengthMetricsErrorMessage("");
+          setBodyweightLogsErrorMessage("");
 
           const { startDate, endDate } = getLastTenDaysRange();
           const { data: nutritionData, error: nutritionError } = await supabase
@@ -854,6 +864,24 @@ export default function AdminUserPage() {
             setStrengthMetrics(strengthData || []);
           }
 
+          const { data: bodyweightData, error: bodyweightError } = await supabase
+            .from("weight_log")
+            .select("date,weight_kg,body_fat_percentage,notes")
+            .eq("user_email", data.email)
+            .order("date", { ascending: false });
+
+          if (!isMounted) {
+            return;
+          }
+
+          if (bodyweightError) {
+            console.error("Admin bodyweight logs query error:", bodyweightError);
+            setBodyweightLogsErrorMessage(bodyweightError.message);
+            setBodyweightLogs([]);
+          } else {
+            setBodyweightLogs(bodyweightData || []);
+          }
+
           setIsLoadingProgress(false);
         } else {
           setNutritionDays([]);
@@ -872,6 +900,8 @@ export default function AdminUserPage() {
           setProgressErrorMessage("");
           setStrengthMetrics([]);
           setStrengthMetricsErrorMessage("");
+          setBodyweightLogs([]);
+          setBodyweightLogsErrorMessage("");
         }
       }
     }
@@ -1654,6 +1684,69 @@ export default function AdminUserPage() {
                               </p>
                             </div>
                           ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {!isLoadingProgress && (
+                    <div className="mt-5 rounded-2xl border border-[#E5E7EB] bg-white p-5">
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#1157D8]">
+                          Bodyweight Logs
+                        </p>
+                        <h3 className="mt-2 text-lg font-bold text-[#0B1220]">
+                          Bodyweight history
+                        </h3>
+                      </div>
+
+                      {bodyweightLogsErrorMessage && (
+                        <p className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
+                          {bodyweightLogsErrorMessage}
+                        </p>
+                      )}
+
+                      {!bodyweightLogsErrorMessage && bodyweightLogs.length === 0 && (
+                        <p className="mt-4 text-sm font-semibold text-[#4B5563]">
+                          No bodyweight logs yet.
+                        </p>
+                      )}
+
+                      {!bodyweightLogsErrorMessage && bodyweightLogs.length > 0 && (
+                        <div className="mt-5 space-y-3">
+                          {bodyweightLogs.map((log, index) => {
+                            const notes = log.notes?.trim();
+
+                            return (
+                              <article
+                                key={`${log.date || "bodyweight"}-${index}`}
+                                className="rounded-2xl border border-[#E5E7EB] bg-[#F8FAFC] p-4"
+                              >
+                                <div className="flex flex-wrap items-start justify-between gap-3">
+                                  <div>
+                                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#1157D8]">
+                                      {formatDate(log.date)}
+                                    </p>
+                                    <p className="mt-2 text-2xl font-bold text-[#0B1220]">
+                                      {formatValue(log.weight_kg)} kg
+                                    </p>
+                                  </div>
+
+                                  {log.body_fat_percentage !== null && (
+                                    <span className="rounded-full bg-[#EAF1FF] px-3 py-1 text-xs font-bold text-[#1157D8]">
+                                      {formatValue(log.body_fat_percentage)}% body fat
+                                    </span>
+                                  )}
+                                </div>
+
+                                {notes && (
+                                  <p className="mt-3 whitespace-pre-line text-sm font-semibold leading-6 text-[#4B5563]">
+                                    {notes}
+                                  </p>
+                                )}
+                              </article>
+                            );
+                          })}
                         </div>
                       )}
                     </div>
