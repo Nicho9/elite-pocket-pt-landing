@@ -32,8 +32,9 @@ const sections = [
   {
     title: "Acceptable use and community conduct",
     body: [
-      "You agree to use Elite Pocket PT respectfully and lawfully. Community content must not include harassment, abuse, hate speech, spam, illegal content, or content that infringes another person's rights.",
-      "We may remove content, restrict features, or suspend access where conduct threatens the service, users, coaches, or community.",
+      "Elite Pocket PT has no tolerance for objectionable content, harassment, abuse, hate speech, spam, sexual content, illegal content, or abusive users.",
+      "Users can report objectionable community content and block abusive users directly inside the app.",
+      "We review objectionable content reports within 24 hours and may remove offending content, restrict features, suspend accounts, or remove users who violate these Terms or threaten the safety of the community.",
     ],
   },
   {
