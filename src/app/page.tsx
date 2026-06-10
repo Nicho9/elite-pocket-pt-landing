@@ -4,15 +4,7 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
-const launchDate = new Date("2026-06-01T10:00:00+04:00").getTime();
-
-const referralOptions = [
-  "Mike Nicholson",
-  "Elite Pocket PT Instagram",
-  "Friend",
-  "The Lifting Zone",
-  "Other",
-];
+const iosAppStoreHref = "https://apps.apple.com/ae/app/elite-pocket-pt/id6761879840";
 
 const coachMikeImages = [
   "/hero/coach-mike-profile.png",
@@ -23,25 +15,8 @@ const coachMikeImages = [
 type CheckoutPlan = "full_app" | "vip";
 type CheckoutStatus = "idle" | "loading" | "error";
 
-function getTimeLeft() {
-  const difference = Math.max(launchDate - Date.now(), 0);
-
-  return {
-    days: Math.floor(difference / (1000 * 60 * 60 * 24)),
-    hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
-    minutes: Math.floor((difference / (1000 * 60)) % 60),
-    seconds: Math.floor((difference / 1000) % 60),
-  };
-}
-
 export default function Home() {
   const heroVideoRef = useRef<HTMLVideoElement | null>(null);
-  const [timeLeft, setTimeLeft] = useState<ReturnType<typeof getTimeLeft> | null>(null);
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [referralSource, setReferralSource] = useState("");
-  const [status, setStatus] = useState<"idle" | "loading" | "success" | "duplicate" | "error">("idle");
-  const [errorMessage, setErrorMessage] = useState("");
   const [activeCoachImage, setActiveCoachImage] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(false);
@@ -52,21 +27,6 @@ export default function Home() {
   const [checkoutConfirmPassword, setCheckoutConfirmPassword] = useState("");
   const [checkoutStatus, setCheckoutStatus] = useState<CheckoutStatus>("idle");
   const [checkoutErrorMessage, setCheckoutErrorMessage] = useState("");
-
-  useEffect(() => {
-    const initialTimer = window.setTimeout(() => {
-      setTimeLeft(getTimeLeft());
-    }, 0);
-
-    const timer = window.setInterval(() => {
-      setTimeLeft(getTimeLeft());
-    }, 1000);
-
-    return () => {
-      window.clearTimeout(initialTimer);
-      window.clearInterval(timer);
-    };
-  }, []);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -89,47 +49,6 @@ export default function Home() {
         video.muted = true;
         setSoundEnabled(false);
       });
-    }
-  }
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setStatus("loading");
-    setErrorMessage("");
-
-    try {
-      const response = await fetch("/api/waitlist", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: name.trim(),
-          email: email.trim().toLowerCase(),
-          referralSource,
-        }),
-      });
-
-      const result = await response.json();
-
-      if (response.ok && result.success) {
-        setStatus("success");
-        setName("");
-        setEmail("");
-        setReferralSource("");
-        return;
-      }
-
-      if (response.status === 409 || result.code === "duplicate_email") {
-        setStatus("duplicate");
-        return;
-      }
-
-      setErrorMessage(typeof result.error === "string" ? result.error : "");
-      setStatus("error");
-    } catch (error) {
-      console.error("Waitlist submission error:", error);
-      setStatus("error");
     }
   }
 
@@ -233,12 +152,6 @@ export default function Home() {
     }
   }
 
-  const countdown = [
-    ["Days", timeLeft?.days],
-    ["Hours", timeLeft?.hours],
-    ["Minutes", timeLeft?.minutes],
-    ["Seconds", timeLeft?.seconds],
-  ];
   const checkoutPlanLabel =
     selectedCheckoutPlan === "vip" ? "VIP Coaching" : "Full App Access";
   const checkoutTitle =
@@ -283,7 +196,7 @@ export default function Home() {
               Login
             </Link>
             <a
-              href="#early-access"
+              href="#get-started"
               className="rounded-full bg-[#1157D8] px-5 py-2.5 text-sm font-bold text-white shadow-[0_10px_24px_rgba(17,87,216,0.24)] transition hover:bg-[#0A39A8]"
             >
               Get Started
@@ -434,97 +347,75 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="mx-auto mt-7 grid w-full max-w-xl grid-cols-4 gap-2 sm:mt-8 sm:gap-3">
-            {countdown.map(([label, value]) => (
-              <div
-                key={label}
-                className="relative overflow-hidden rounded-2xl border border-white/10 border-t-[#1157D8]/70 bg-[#11161D] px-3 py-3 text-center shadow-[0_16px_40px_rgba(0,0,0,0.24)] ring-1 ring-[#1157D8]/10 sm:py-4"
-              >
-                <div className="mx-auto mb-3 h-px w-8 bg-[#1157D8]/70" />
-                <div className="text-2xl font-bold tabular-nums text-white sm:text-3xl">
-                  {String(value ?? 0).padStart(2, "0")}
-                </div>
-                <div className="mt-1 text-[0.62rem] font-bold uppercase tracking-[0.16em] text-white/50 sm:text-[0.68rem]">
-                  {label}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div id="early-access" className="mx-auto mt-7 w-full max-w-5xl scroll-mt-24 rounded-[2rem] border border-white/10 border-t-[#1157D8]/40 bg-[#0E1319] p-4 shadow-[0_28px_80px_rgba(0,0,0,0.34)] ring-1 ring-[#1157D8]/10 sm:mt-8 sm:p-5">
-            <div className="flex flex-col items-center text-center">
-              <div className="inline-flex rounded-full border border-[#1157D8]/30 bg-[#1157D8]/12 px-5 py-2 text-sm font-bold text-white">
-                Register Your Interest — 50% Early Access
-              </div>
-
-              <form
-                onSubmit={handleSubmit}
-                className="mt-5 grid w-full grid-cols-1 items-start gap-3 lg:grid-cols-[1fr_1fr_1.2fr_auto]"
-              >
-                <input
-                  required
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                  placeholder="Name"
-                  className="h-16 rounded-2xl border border-white/10 bg-[#151B23] px-5 text-base text-white outline-none transition placeholder:text-white/38 focus:border-[#1157D8] focus:bg-[#18202A] focus:ring-4 focus:ring-[#1157D8]/18"
-                />
-
-                <input
-                  required
-                  type="email"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  placeholder="Email address"
-                  className="h-16 rounded-2xl border border-white/10 bg-[#151B23] px-5 text-base text-white outline-none transition placeholder:text-white/38 focus:border-[#1157D8] focus:bg-[#18202A] focus:ring-4 focus:ring-[#1157D8]/18"
-                />
-
-                <select
-                  required
-                  value={referralSource}
-                  onChange={(event) => setReferralSource(event.target.value)}
-                  className="h-16 rounded-2xl border border-white/10 bg-[#151B23] px-5 text-base text-white outline-none transition focus:border-[#1157D8] focus:bg-[#18202A] focus:ring-4 focus:ring-[#1157D8]/18"
-                >
-                  <option value="">Where did you hear about us?</option>
-                  {referralOptions.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
-
-                <button
-                  type="submit"
-                  disabled={status === "loading"}
-                  className="h-16 w-full rounded-2xl bg-[#1157D8] px-8 text-base font-bold text-white shadow-[0_14px_32px_rgba(17,87,216,0.24)] transition hover:bg-[#0A39A8] disabled:cursor-not-allowed disabled:opacity-70 lg:w-auto"
-                >
-                  {status === "loading" ? "Submitting..." : "Register"}
-                </button>
-              </form>
-
-              <p className="mt-4 inline-flex items-start gap-2 rounded-full border border-[#1157D8]/20 bg-[#1157D8]/10 px-4 py-2 text-sm font-medium text-white/70">
-                <span className="flex size-5 items-start justify-center rounded-full bg-[#1157D8] text-xs font-bold text-white">
-                  ✓
+          <div id="get-started" className="mx-auto mt-7 grid w-full max-w-5xl scroll-mt-24 gap-4 sm:mt-8 lg:grid-cols-3">
+            <a
+              href={iosAppStoreHref}
+              className="group relative flex min-h-[17rem] overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(145deg,#171E28_0%,#0D1218_58%,#090B0F_100%)] p-6 text-left shadow-[0_28px_80px_rgba(0,0,0,0.34)] ring-1 ring-[#1157D8]/10 transition duration-300 hover:-translate-y-1.5 hover:border-[#6EA8FF]/45 hover:shadow-[0_34px_90px_rgba(17,87,216,0.22)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#1157D8]/35"
+            >
+              <span className="absolute inset-x-6 top-0 h-px bg-[linear-gradient(90deg,transparent,#6EA8FF,transparent)] opacity-70" />
+              <span className="absolute right-5 top-5 flex size-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] text-lg font-black text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition group-hover:border-[#6EA8FF]/40 group-hover:bg-[#1157D8]/20">
+                iOS
+              </span>
+              <span className="relative flex h-full flex-col justify-between">
+                <span className="inline-flex w-fit rounded-full border border-[#6EA8FF]/20 bg-[#1157D8]/15 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-[#9BC4FF]">
+                  IOS APP
                 </span>
-                Limited early access spots available.
-              </p>
+                <span>
+                  <span className="block text-3xl font-bold leading-tight text-white">
+                    Download on iOS
+                  </span>
+                  <span className="mt-3 block text-sm font-medium leading-6 text-white/62">
+                    Get the app from the App Store, then create your account and subscription directly in the app with Apple Pay.
+                  </span>
+                </span>
+              </span>
+            </a>
 
-              {status === "success" && (
-                <p className="mt-4 w-fit rounded-full bg-white px-5 py-3 text-sm font-semibold text-[#1157D8] shadow-sm">
-                  You’re in — we’ll email your 50% early access offer before launch.
-                </p>
-              )}
+            <button
+              type="button"
+              onClick={() => openCheckout("full_app")}
+              className="group relative flex min-h-[17rem] overflow-hidden rounded-[2rem] border border-[#6EA8FF]/25 bg-[linear-gradient(145deg,#1A6BFF_0%,#1157D8_42%,#092763_100%)] p-6 text-left shadow-[0_30px_90px_rgba(17,87,216,0.32)] ring-1 ring-white/15 transition duration-300 hover:-translate-y-1.5 hover:border-white/35 hover:shadow-[0_38px_100px_rgba(17,87,216,0.42)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#6EA8FF]/35"
+            >
+              <span className="absolute -right-16 -top-16 size-40 rounded-full bg-white/15 blur-3xl transition group-hover:bg-white/20" />
+              <span className="absolute inset-x-6 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.95),transparent)] opacity-80" />
+              <span className="absolute right-5 top-5 flex size-12 items-center justify-center rounded-2xl border border-white/20 bg-white/15 text-lg font-black text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.16)]">
+                PT
+              </span>
+              <span className="relative flex h-full flex-col justify-between">
+                <span className="inline-flex w-fit rounded-full border border-white/20 bg-white/15 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-white/85">
+                  WEB CHECKOUT
+                </span>
+                <span>
+                  <span className="block text-3xl font-bold leading-tight text-white">
+                    Subscribe on the Web
+                  </span>
+                  <span className="mt-3 block text-sm font-medium leading-6 text-white/75">
+                    Create your account and start your membership through the secure Stripe checkout.
+                  </span>
+                </span>
+              </span>
+            </button>
 
-              {status === "duplicate" && (
-                <p className="mt-4 w-fit rounded-full bg-white px-5 py-3 text-sm font-semibold text-[#1157D8] shadow-sm">
-                  You’re already registered — we’ll be in touch before launch.
-                </p>
-              )}
-
-              {status === "error" && (
-                <p className="mt-4 w-fit rounded-full bg-white px-5 py-3 text-sm font-semibold text-red-600 shadow-sm">
-                  Something went wrong. Please try again. {errorMessage}
-                </p>
-              )}
+            <div className="relative flex min-h-[17rem] overflow-hidden rounded-[2rem] border border-white/8 bg-[linear-gradient(145deg,#121820_0%,#0B0F14_62%,#080A0D_100%)] p-6 text-left opacity-90 shadow-[0_28px_80px_rgba(0,0,0,0.3)] ring-1 ring-white/8">
+              <span className="absolute inset-x-6 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.28),transparent)]" />
+              <span className="absolute right-5 top-5 flex size-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.05] text-lg font-black text-white/38 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                GP
+              </span>
+              <span className="relative flex h-full flex-col justify-between">
+                <span className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex w-fit rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-white/48">
+                    ANDROID APP
+                  </span>
+                </span>
+                <span>
+                  <span className="block text-3xl font-bold leading-tight text-white/62">
+                    Download on Google Play
+                  </span>
+                  <span className="mt-3 block text-sm font-medium leading-6 text-white/42">
+                    Get the app from Google Play, then create your account and subscription directly in the app.
+                  </span>
+                </span>
+              </span>
             </div>
           </div>
         </div>
@@ -544,8 +435,8 @@ export default function Home() {
             <div className="absolute left-[10%] right-[10%] top-12 hidden h-px bg-gradient-to-r from-transparent via-[#1157D8]/25 to-transparent lg:block" />
             {[
               {
-                title: "Create your account",
-                body: "Sign up securely via Stripe. Full access from day one — cancel anytime.",
+                title: "Choose how to start",
+                body: "Start through the iOS app with App Store payment, download on Google Play for Android, or create your account on the web through secure Stripe checkout. Full access from day one — cancel anytime.",
               },
               {
                 title: "Complete your setup",
@@ -746,7 +637,7 @@ export default function Home() {
               </p>
             </div>
             <a
-              href="#early-access"
+              href="#get-started"
               className="mt-8 inline-flex rounded-full bg-[#1157D8] px-8 py-4 text-base font-bold text-white shadow-[0_16px_40px_rgba(17,87,216,0.28)] transition hover:bg-[#0A39A8]"
             >
               Start your training
@@ -879,7 +770,7 @@ export default function Home() {
                   "Community",
                 ],
                 buttonText: "Start your training",
-                href: "#early-access",
+                href: "#get-started",
                 note: "Cancel anytime. Manage your account online.",
                 showMonthlySuffix: true,
                 checkoutPlan: "full_app" as const,
@@ -897,7 +788,7 @@ export default function Home() {
                   "Unlimited webinar access",
                 ],
                 buttonText: "Apply for VIP coaching",
-                href: "#early-access",
+                href: "#get-started",
                 note: "Limited availability for high-touch coaching clients.",
                 showMonthlySuffix: true,
                 checkoutPlan: "vip" as const,
@@ -976,7 +867,7 @@ export default function Home() {
                     </button>
                   ) : (
                     <a
-                      href={plan.href || "#early-access"}
+                      href={plan.href || "#get-started"}
                       className="inline-flex w-full justify-center rounded-full bg-[#1157D8] px-8 py-4 text-base font-bold text-white shadow-[0_16px_40px_rgba(17,87,216,0.28)] transition hover:bg-[#0A39A8]"
                     >
                       {plan.buttonText}
