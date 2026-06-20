@@ -11,11 +11,35 @@ type UserRow = {
   email: string | null;
   role: string | null;
   created_date: string | null;
+  updated_date: string | null;
   last_sign_in_at: string | null;
   onboarding_completed: boolean | null;
+  onboarding_current_step: string | null;
   subscription_status: string | null;
   subscription_tier: string | null;
   subscription_end_date: string | null;
+  subscription_ends_at: string | null;
+  gender: string | null;
+  weight_kg: number | null;
+  height_cm: number | null;
+  goal: string | null;
+  activity_level: string | null;
+  workout_goals: string[] | string | null;
+  training_days_per_week: number | null;
+  apple_environment: string | null;
+  apple_product_id: string | null;
+  apple_subscription_expires_at: string | null;
+  google_subscription_expires_at: string | null;
+  payment_provider: string | null;
+  latest_subscription_status: string | null;
+  latest_subscription_period_end: string | null;
+  latest_subscription_apple_environment: string | null;
+  latest_subscription_apple_product_id: string | null;
+  latest_subscription_google_environment: string | null;
+  latest_subscription_google_product_id: string | null;
+  has_app_access: boolean | null;
+  days_since_signup: number | null;
+  signup_funnel_status: string | null;
   workout_profile_count: number | null;
   meal_plan_count: number | null;
   nutrition_log_count: number | null;
@@ -36,6 +60,18 @@ type UserRow = {
 
 type DashboardKpis = {
   total_users: number | null;
+  new_users_today: number | null;
+  new_users_7_days: number | null;
+  new_users_30_days: number | null;
+  onboarding_completed_today: number | null;
+  onboarding_completed_7_days: number | null;
+  onboarding_completed_30_days: number | null;
+  completed_onboarding_not_subscribed: number | null;
+  paid_active_users: number | null;
+  ios_production_subscribers: number | null;
+  apple_subscribers: number | null;
+  stripe_subscribers: number | null;
+  google_subscribers: number | null;
   active_subscriptions: number | null;
   active_trials: number | null;
   users_active_today: number | null;
@@ -73,6 +109,17 @@ type SelectedKpiFilter = keyof DashboardKpis | null;
 
 const kpiCards: Array<[string, keyof DashboardKpis]> = [
   ["Total users", "total_users"],
+  ["New users today", "new_users_today"],
+  ["New users 7 days", "new_users_7_days"],
+  ["New users 30 days", "new_users_30_days"],
+  ["Onboarded today", "onboarding_completed_today"],
+  ["Onboarded 7 days", "onboarding_completed_7_days"],
+  ["Paywall drop-offs", "completed_onboarding_not_subscribed"],
+  ["Paid active users", "paid_active_users"],
+  ["iOS production", "ios_production_subscribers"],
+  ["Apple subscribers", "apple_subscribers"],
+  ["Stripe subscribers", "stripe_subscribers"],
+  ["Google subscribers", "google_subscribers"],
   ["Active trials", "active_trials"],
   ["Active subscriptions", "active_subscriptions"],
   ["Users active today", "users_active_today"],
@@ -125,6 +172,18 @@ const featureFilterLabels: Record<FeatureFilter, string> = {
 
 const kpiFilterLabels: Record<keyof DashboardKpis, string> = {
   total_users: "All users",
+  new_users_today: "New users today",
+  new_users_7_days: "New users 7 days",
+  new_users_30_days: "New users 30 days",
+  onboarding_completed_today: "Onboarded today",
+  onboarding_completed_7_days: "Onboarded 7 days",
+  onboarding_completed_30_days: "Onboarded 30 days",
+  completed_onboarding_not_subscribed: "Paywall drop-offs",
+  paid_active_users: "Paid active users",
+  ios_production_subscribers: "iOS production",
+  apple_subscribers: "Apple subscribers",
+  stripe_subscribers: "Stripe subscribers",
+  google_subscribers: "Google subscribers",
   active_subscriptions: "Active subscriptions",
   active_trials: "Active trials",
   users_active_today: "Users active today",
@@ -187,6 +246,84 @@ function formatStatusLabel(value: string | null | undefined) {
     .filter(Boolean)
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
+}
+
+function getRenewalOrExpiryDate(user: UserRow) {
+  return (
+    user.latest_subscription_period_end ||
+    user.subscription_ends_at ||
+    user.apple_subscription_expires_at ||
+    user.google_subscription_expires_at
+  );
+}
+
+function isWithinDays(value: string | null | undefined, days: number) {
+  if (!value) {
+    return false;
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return false;
+  }
+
+  const elapsed = Date.now() - date.getTime();
+  const windowMs = days * 24 * 60 * 60 * 1000;
+
+  return elapsed >= 0 && elapsed <= windowMs;
+}
+
+function matchesSignupWindow(user: UserRow, days: number) {
+  if (typeof user.days_since_signup === "number") {
+    return user.days_since_signup >= 0 && user.days_since_signup < days;
+  }
+
+  return isWithinDays(user.created_date, days);
+}
+
+function getPaymentProvider(user: UserRow) {
+  if (user.payment_provider) {
+    return user.payment_provider;
+  }
+
+  if (
+    user.apple_product_id ||
+    user.latest_subscription_apple_product_id ||
+    user.apple_subscription_expires_at
+  ) {
+    return "apple";
+  }
+
+  if (user.latest_subscription_google_product_id || user.google_subscription_expires_at) {
+    return "google";
+  }
+
+  return null;
+}
+
+function hasActivePaidSubscription(user: UserRow) {
+  const status = (user.latest_subscription_status || user.subscription_status || "").toLowerCase();
+
+  return user.has_app_access === true || status === "active";
+}
+
+function hasAppleSubscription(user: UserRow) {
+  return (
+    getPaymentProvider(user)?.toLowerCase() === "apple" ||
+    Boolean(user.apple_product_id || user.latest_subscription_apple_product_id)
+  );
+}
+
+function hasGoogleSubscription(user: UserRow) {
+  return (
+    getPaymentProvider(user)?.toLowerCase() === "google" ||
+    Boolean(user.latest_subscription_google_product_id)
+  );
+}
+
+function hasStripeSubscription(user: UserRow) {
+  return getPaymentProvider(user)?.toLowerCase() === "stripe";
 }
 
 function getStatusTone(value: string | null | undefined) {
@@ -259,6 +396,58 @@ function matchesSelectedKpiFilter(user: UserRow, selectedKpiFilter: SelectedKpiF
 
   if (selectedKpiFilter === "active_subscriptions") {
     return user.lifecycle_status === "active";
+  }
+
+  if (selectedKpiFilter === "new_users_today") {
+    return matchesSignupWindow(user, 1);
+  }
+
+  if (selectedKpiFilter === "new_users_7_days") {
+    return matchesSignupWindow(user, 7);
+  }
+
+  if (selectedKpiFilter === "new_users_30_days") {
+    return matchesSignupWindow(user, 30);
+  }
+
+  if (selectedKpiFilter === "onboarding_completed_today") {
+    return user.onboarding_completed === true && isWithinDays(user.updated_date, 1);
+  }
+
+  if (selectedKpiFilter === "onboarding_completed_7_days") {
+    return user.onboarding_completed === true && isWithinDays(user.updated_date, 7);
+  }
+
+  if (selectedKpiFilter === "onboarding_completed_30_days") {
+    return user.onboarding_completed === true && isWithinDays(user.updated_date, 30);
+  }
+
+  if (selectedKpiFilter === "completed_onboarding_not_subscribed") {
+    return user.onboarding_completed === true && user.has_app_access !== true;
+  }
+
+  if (selectedKpiFilter === "paid_active_users") {
+    return hasActivePaidSubscription(user);
+  }
+
+  if (selectedKpiFilter === "ios_production_subscribers") {
+    return (
+      hasAppleSubscription(user) &&
+      (user.latest_subscription_apple_environment?.toLowerCase() === "production" ||
+        user.apple_environment?.toLowerCase() === "production")
+    );
+  }
+
+  if (selectedKpiFilter === "apple_subscribers") {
+    return hasAppleSubscription(user);
+  }
+
+  if (selectedKpiFilter === "stripe_subscribers") {
+    return hasStripeSubscription(user);
+  }
+
+  if (selectedKpiFilter === "google_subscribers") {
+    return hasGoogleSubscription(user);
   }
 
   if (selectedKpiFilter === "users_active_today") {
@@ -655,7 +844,7 @@ export default function AdminPage() {
             </p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[1600px] border-collapse text-left text-sm">
+              <table className="w-full min-w-[2400px] border-collapse text-left text-sm">
                 <thead className="bg-[#F8FAFC] text-xs font-bold uppercase tracking-[0.16em] text-[#6B7280]">
                   <tr>
                     <th className="px-5 py-4">Name</th>
@@ -663,6 +852,14 @@ export default function AdminPage() {
                     <th className="px-5 py-4">Lifecycle</th>
                     <th className="px-5 py-4">Engagement</th>
                     <th className="px-5 py-4">Activation</th>
+                    <th className="px-5 py-4">Funnel</th>
+                    <th className="px-5 py-4">Provider</th>
+                    <th className="px-5 py-4">Access</th>
+                    <th className="px-5 py-4">Created</th>
+                    <th className="px-5 py-4">Days since signup</th>
+                    <th className="px-5 py-4">Goal</th>
+                    <th className="px-5 py-4">Training days</th>
+                    <th className="px-5 py-4">Renewal / expiry</th>
                     <th className="px-5 py-4">Last login</th>
                     <th className="px-5 py-4">Last activity</th>
                     <th className="px-5 py-4">Days inactive</th>
@@ -692,6 +889,34 @@ export default function AdminPage() {
                       </td>
                       <td className="px-5 py-4">
                         <StatusPill value={user.activation_status} />
+                      </td>
+                      <td className="px-5 py-4">
+                        <StatusPill value={user.signup_funnel_status} />
+                      </td>
+                      <td className="px-5 py-4">
+                        <StatusPill value={getPaymentProvider(user)} />
+                      </td>
+                      <td className="px-5 py-4">
+                        <BooleanPill value={user.has_app_access} />
+                      </td>
+                      <td className="px-5 py-4 text-[#4B5563]">
+                        {formatDateTime(user.created_date)}
+                      </td>
+                      <td className="px-5 py-4 text-[#4B5563]">
+                        {user.days_since_signup === null
+                          ? "Unknown"
+                          : formatCount(user.days_since_signup)}
+                      </td>
+                      <td className="px-5 py-4 text-[#4B5563]">
+                        {user.goal ? formatStatusLabel(user.goal) : "Unknown"}
+                      </td>
+                      <td className="px-5 py-4 text-[#4B5563]">
+                        {user.training_days_per_week === null
+                          ? "Unknown"
+                          : formatCount(user.training_days_per_week)}
+                      </td>
+                      <td className="px-5 py-4 text-[#4B5563]">
+                        {formatDateTime(getRenewalOrExpiryDate(user))}
                       </td>
                       <td className="px-5 py-4 text-[#4B5563]">
                         {formatDateTime(user.last_sign_in_at)}
