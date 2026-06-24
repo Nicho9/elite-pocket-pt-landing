@@ -347,26 +347,30 @@ export default function Home() {
             </p>
           </div>
 
-          <div id="get-started" className="mx-auto mt-7 grid w-full max-w-5xl scroll-mt-24 gap-4 sm:mt-8 lg:grid-cols-3">
+          <div id="get-started" className="mx-auto mt-7 grid w-full max-w-7xl scroll-mt-24 gap-4 sm:mt-8 lg:grid-cols-4">
             <a
               href={iosAppStoreHref}
-              className="group relative flex min-h-[17rem] overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(145deg,#171E28_0%,#0D1218_58%,#090B0F_100%)] p-6 text-left shadow-[0_28px_80px_rgba(0,0,0,0.34)] ring-1 ring-[#1157D8]/10 transition duration-300 hover:-translate-y-1.5 hover:border-[#6EA8FF]/45 hover:shadow-[0_34px_90px_rgba(17,87,216,0.22)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#1157D8]/35"
+              className="group relative flex min-h-[17rem] overflow-hidden rounded-[2rem] border border-[#6EA8FF]/20 bg-[linear-gradient(145deg,#171E28_0%,#0D1218_58%,#090B0F_100%)] p-6 text-left shadow-[0_28px_80px_rgba(0,0,0,0.34)] ring-1 ring-[#1157D8]/10 transition duration-300 hover:-translate-y-1.5 hover:border-[#6EA8FF]/45 hover:shadow-[0_34px_90px_rgba(17,87,216,0.22)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#1157D8]/35"
             >
+              <span className="absolute -right-16 -top-16 size-40 rounded-full bg-[#1157D8]/12 blur-3xl transition group-hover:bg-[#1157D8]/18" />
               <span className="absolute inset-x-6 top-0 h-px bg-[linear-gradient(90deg,transparent,#6EA8FF,transparent)] opacity-70" />
               <span className="absolute right-5 top-5 flex size-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] text-lg font-black text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition group-hover:border-[#6EA8FF]/40 group-hover:bg-[#1157D8]/20">
                 iOS
               </span>
-              <span className="relative flex h-full flex-col justify-between">
-                <span className="inline-flex w-fit rounded-full border border-[#6EA8FF]/20 bg-[#1157D8]/15 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-[#9BC4FF]">
-                  IOS APP
-                </span>
+              <span className="relative flex h-full flex-col justify-between gap-5">
                 <span>
-                  <span className="block text-3xl font-bold leading-tight text-white">
+                  <span className="inline-flex w-fit rounded-full border border-[#6EA8FF]/20 bg-[#1157D8]/15 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-[#9BC4FF]">
+                    IOS APP
+                  </span>
+                  <span className="mt-5 block text-3xl font-bold leading-tight text-white">
                     Download on iOS
                   </span>
                   <span className="mt-3 block text-sm font-medium leading-6 text-white/62">
                     Get the app from the App Store, then create your account and subscription directly in the app with Apple Pay.
                   </span>
+                </span>
+                <span className="inline-flex w-fit rounded-full bg-white px-5 py-2.5 text-sm font-bold text-[#1157D8] transition group-hover:bg-[#EAF2FF]">
+                  Download on App Store
                 </span>
               </span>
             </a>
@@ -381,42 +385,84 @@ export default function Home() {
               <span className="absolute right-5 top-5 flex size-12 items-center justify-center rounded-2xl border border-white/20 bg-white/15 text-lg font-black text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.16)]">
                 PT
               </span>
-              <span className="relative flex h-full flex-col justify-between">
-                <span className="inline-flex w-fit rounded-full border border-white/20 bg-white/15 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-white/85">
-                  WEB CHECKOUT
-                </span>
+              <span className="relative flex h-full flex-col justify-between gap-5">
                 <span>
-                  <span className="block text-3xl font-bold leading-tight text-white">
+                  <span className="inline-flex w-fit rounded-full border border-white/20 bg-white/15 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-white/85">
+                    WEB CHECKOUT
+                  </span>
+                  <span className="mt-5 block text-3xl font-bold leading-tight text-white">
                     Subscribe on the Web
                   </span>
                   <span className="mt-3 block text-sm font-medium leading-6 text-white/75">
                     Create your account and start your membership through the secure Stripe checkout.
                   </span>
                 </span>
+                <span className="inline-flex w-fit rounded-full bg-white px-5 py-2.5 text-sm font-bold text-[#1157D8] transition group-hover:bg-[#EAF2FF]">
+                  Start web checkout
+                </span>
               </span>
             </button>
 
-            <div className="relative flex min-h-[17rem] overflow-hidden rounded-[2rem] border border-white/8 bg-[linear-gradient(145deg,#121820_0%,#0B0F14_62%,#080A0D_100%)] p-6 text-left opacity-90 shadow-[0_28px_80px_rgba(0,0,0,0.3)] ring-1 ring-white/8">
-              <span className="absolute inset-x-6 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.28),transparent)]" />
-              <span className="absolute right-5 top-5 flex size-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.05] text-lg font-black text-white/38 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+            <a
+              href="https://play.google.com/store/apps/details?id=com.elitepocketpt.app"
+              className="group relative flex min-h-[17rem] overflow-hidden rounded-[2rem] border border-[#6EA8FF]/20 bg-[linear-gradient(145deg,#121820_0%,#0B0F14_62%,#080A0D_100%)] p-6 text-left shadow-[0_28px_80px_rgba(0,0,0,0.3)] ring-1 ring-[#1157D8]/10 transition duration-300 hover:-translate-y-1.5 hover:border-[#6EA8FF]/45 hover:shadow-[0_34px_90px_rgba(17,87,216,0.22)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#1157D8]/35"
+            >
+              <span className="absolute -right-16 -top-16 size-40 rounded-full bg-[#1157D8]/12 blur-3xl transition group-hover:bg-[#1157D8]/18" />
+              <span className="absolute inset-x-6 top-0 h-px bg-[linear-gradient(90deg,transparent,#6EA8FF,transparent)] opacity-70" />
+              <span className="absolute right-5 top-5 flex size-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] text-lg font-black text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition group-hover:border-[#6EA8FF]/40 group-hover:bg-[#1157D8]/20">
                 GP
               </span>
-              <span className="relative flex h-full flex-col justify-between">
-                <span className="flex flex-wrap items-center gap-2">
-                  <span className="inline-flex w-fit rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-white/48">
+              <span className="relative flex h-full flex-col justify-between gap-5">
+                <span>
+                  <span className="inline-flex w-fit rounded-full border border-[#6EA8FF]/20 bg-[#1157D8]/15 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-[#9BC4FF]">
                     ANDROID APP
                   </span>
-                </span>
-                <span>
-                  <span className="block text-3xl font-bold leading-tight text-white/62">
+                  <span className="mt-5 block text-3xl font-bold leading-tight text-white">
                     Download on Google Play
                   </span>
-                  <span className="mt-3 block text-sm font-medium leading-6 text-white/42">
+                  <span className="mt-3 block text-sm font-medium leading-6 text-white/62">
                     Get the app from Google Play, then create your account and subscription directly in the app.
                   </span>
                 </span>
+                <span className="inline-flex w-fit rounded-full bg-white px-5 py-2.5 text-sm font-bold text-[#1157D8] transition group-hover:bg-[#EAF2FF]">
+                  Download on Google Play
+                </span>
               </span>
-            </div>
+            </a>
+
+            <Link
+              href="/elite-8-week-transformation"
+              className="group relative flex min-h-[17rem] overflow-hidden rounded-[2rem] border border-[#6EA8FF]/25 bg-[linear-gradient(145deg,#101826_0%,#1157D8_50%,#061B45_100%)] p-6 text-left shadow-[0_30px_90px_rgba(17,87,216,0.28)] ring-1 ring-white/12 transition duration-300 hover:-translate-y-1.5 hover:border-white/35 hover:shadow-[0_38px_100px_rgba(17,87,216,0.36)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#6EA8FF]/35"
+            >
+              <span className="absolute -right-16 -top-16 size-40 rounded-full bg-white/12 blur-3xl transition group-hover:bg-white/18" />
+              <span className="absolute inset-x-6 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.82),transparent)] opacity-80" />
+              <span className="absolute right-5 top-5 flex size-12 items-center justify-center rounded-2xl border border-white/20 bg-white/15 text-lg font-black text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.16)]">
+                8W
+              </span>
+              <span className="relative flex h-full flex-col justify-between gap-5">
+                <span>
+                  <span className="inline-flex w-fit rounded-full border border-white/20 bg-white/15 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-white/85">
+                    £200 one-off
+                  </span>
+                  <span className="mt-5 block text-3xl font-bold leading-tight text-white">
+                    Elite 8-week Transformation
+                  </span>
+                  <span className="mt-2 block text-sm font-bold uppercase tracking-[0.18em] text-[#D7E4FF]">
+                    8 weeks
+                  </span>
+                  <span className="mt-4 block space-y-2 text-sm font-medium leading-6 text-white/75">
+                    <span className="block">Elite Pocket PT app access</span>
+                    <span className="block">Private WhatsApp cohort group</span>
+                    <span className="block">Educational webinar access</span>
+                    <span className="block">Training, nutrition, progress tracking, and accountability</span>
+                    <span className="block">Starts Monday 13 July 2026, pending team readiness</span>
+                  </span>
+                </span>
+                <span className="inline-flex w-fit rounded-full bg-white px-5 py-2.5 text-sm font-bold text-[#1157D8] transition group-hover:bg-[#EAF2FF]">
+                  View package details
+                </span>
+              </span>
+            </Link>
           </div>
         </div>
       </section>
