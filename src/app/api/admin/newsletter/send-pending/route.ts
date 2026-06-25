@@ -5,6 +5,9 @@ import { requireNewsletterAdmin } from "../auth";
 import { errorResponse, jsonResponse } from "../responses";
 
 const batchSize = 10;
+const siteUrl = "https://www.elitepocketpt.com";
+const appStoreUrl = "https://apps.apple.com/ae/app/elite-pocket-pt/id6761879840";
+const googlePlayUrl = "https://play.google.com/store/apps/details?id=com.elitepocketpt.app";
 
 type SendPendingBody = {
   draftId?: unknown;
@@ -16,6 +19,7 @@ type EmailLogRow = {
   recipient_name: string | null;
   email_subject: string | null;
   email_type: string | null;
+  tracking_token: string | null;
   variables_used: unknown;
 };
 
@@ -59,11 +63,29 @@ function buildEmailHtml(payload: {
   body: string;
   previewText: string;
   campaignType: string;
+  trackingToken: string;
 }) {
   const previewText = payload.previewText.trim();
   const escapedPreview = escapeHtml(previewText);
-  const escapedBody = escapeHtml(payload.body.trim()).replaceAll("\n", "<br />");
+  const trackingToken = payload.trackingToken.trim();
+  const escapedAppStoreUrl = escapeHtml(appStoreUrl);
+  const escapedGooglePlayUrl = escapeHtml(googlePlayUrl);
+  const trackedAppStoreUrl = `${siteUrl}/api/newsletter/click/${trackingToken}?link=app_store`;
+  const trackedGooglePlayUrl = `${siteUrl}/api/newsletter/click/${trackingToken}?link=google_play`;
+  const escapedBody = escapeHtml(payload.body.trim())
+    .replaceAll(
+      escapedAppStoreUrl,
+      `<a href="${trackedAppStoreUrl}" style="color:#1157d8;font-weight:700;">${escapedAppStoreUrl}</a>`,
+    )
+    .replaceAll(
+      escapedGooglePlayUrl,
+      `<a href="${trackedGooglePlayUrl}" style="color:#1157d8;font-weight:700;">${escapedGooglePlayUrl}</a>`,
+    )
+    .replaceAll("\n", "<br />");
   const escapedCampaignType = escapeHtml(payload.campaignType || "newsletter");
+  const trackingPixelHtml = trackingToken
+    ? `<img src="${siteUrl}/api/newsletter/open/${trackingToken}.png" width="1" height="1" alt="" style="display:none;height:1px;width:1px;border:0;" />`
+    : "";
 
   return `<!doctype html>
 <html>
@@ -91,6 +113,7 @@ function buildEmailHtml(payload: {
                 <div style="font-size:16px;line-height:1.7;color:#111827;">
                   ${escapedBody}
                 </div>
+                ${trackingPixelHtml}
                 <div style="margin-top:28px;padding-top:18px;border-top:1px solid #e5e7eb;font-size:12px;line-height:1.6;color:#6b7280;">
                   Campaign type: ${escapedCampaignType}
                 </div>
@@ -162,7 +185,7 @@ export async function POST(request: Request) {
 
   const { data: pendingRows, error: pendingError } = await adminSupabase
     .from("email_log")
-    .select("id,recipient_email,recipient_name,email_subject,email_type,variables_used")
+    .select("id,recipient_email,recipient_name,email_subject,email_type,tracking_token,variables_used")
     .eq("status", "pending")
     .eq("variables_used->>draftId", draftId)
     .order("created_date", { ascending: true })
@@ -182,6 +205,7 @@ export async function POST(request: Request) {
   for (const row of rows) {
     const recipientEmail = row.recipient_email?.trim() || "";
     const subject = row.email_subject?.trim() || "";
+    const trackingToken = row.tracking_token?.trim() || "";
     const body = readString(row.variables_used, "body");
     const previewText = readString(row.variables_used, "previewText");
     const campaignType = readString(row.variables_used, "campaignType") || row.email_type || "newsletter";
@@ -218,7 +242,7 @@ export async function POST(request: Request) {
 
     processed += 1;
 
-    if (!recipientEmail || !subject || !body) {
+    if (!recipientEmail || !subject || !body || !trackingToken) {
       failed += 1;
       await adminSupabase
         .from("email_log")
@@ -227,7 +251,7 @@ export async function POST(request: Request) {
           variables_used: {
             ...variables,
             failedAt: new Date().toISOString(),
-            failureReason: "Missing recipient, subject, or body.",
+            failureReason: "Missing recipient, subject, body, or tracking token.",
           },
         })
         .eq("id", row.id);
@@ -242,6 +266,7 @@ export async function POST(request: Request) {
         body,
         previewText,
         campaignType,
+        trackingToken,
       }),
     });
 

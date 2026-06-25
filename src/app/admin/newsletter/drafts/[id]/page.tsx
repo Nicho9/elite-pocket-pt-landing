@@ -108,13 +108,33 @@ type CampaignAnalytics = {
   processing: number;
   sent: number;
   failed: number;
+  opened: number;
+  clicked: number;
+  appStoreClicks: number;
+  googlePlayClicks: number;
   total: number;
+};
+
+type RecipientEngagementRow = {
+  emailLogId: string;
+  email: string;
+  name: string;
+  status: string;
+  opened: boolean;
+  openedAt: string | null;
+  openCount: number;
+  clicked: boolean;
+  lastClickedAt: string | null;
+  clickCount: number;
+  appStoreClicks: number;
+  googlePlayClicks: number;
 };
 
 type CampaignAnalyticsResponse =
   | {
       success: true;
       analytics: CampaignAnalytics;
+      recipientAnalytics: RecipientEngagementRow[];
     }
   | {
       success: false;
@@ -134,6 +154,10 @@ const analyticsCards: Array<[string, keyof CampaignAnalytics]> = [
   ["Processing", "processing"],
   ["Sent", "sent"],
   ["Failed", "failed"],
+  ["Opened", "opened"],
+  ["Clicked", "clicked"],
+  ["App Store clicks", "appStoreClicks"],
+  ["Google Play clicks", "googlePlayClicks"],
 ];
 
 function titleCase(value: string) {
@@ -286,8 +310,10 @@ export default function NewsletterDraftDetailPage() {
   const [isLoadingEstimate, setIsLoadingEstimate] = useState(false);
   const [estimateErrorMessage, setEstimateErrorMessage] = useState("");
   const [analytics, setAnalytics] = useState<CampaignAnalytics | null>(null);
+  const [recipientAnalytics, setRecipientAnalytics] = useState<RecipientEngagementRow[]>([]);
   const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
   const [analyticsErrorMessage, setAnalyticsErrorMessage] = useState("");
+  const [engagementSearchTerm, setEngagementSearchTerm] = useState("");
   const [recipientPreview, setRecipientPreview] = useState<RecipientPreviewRow[]>([]);
   const [recipientSegmentBreakdown, setRecipientSegmentBreakdown] = useState<Record<string, number>>({});
   const [isLoadingRecipientPreview, setIsLoadingRecipientPreview] = useState(false);
@@ -469,10 +495,12 @@ export default function NewsletterDraftDetailPage() {
             );
           } else {
             setAnalytics(analyticsPayload.analytics);
+            setRecipientAnalytics(analyticsPayload.recipientAnalytics);
           }
         } catch (analyticsError) {
           if (isMounted) {
             setAnalytics(null);
+            setRecipientAnalytics([]);
             setAnalyticsErrorMessage(
               analyticsError instanceof Error ? analyticsError.message : "Could not load campaign analytics.",
             );
@@ -524,6 +552,16 @@ export default function NewsletterDraftDetailPage() {
       recipient.subscriptionStatus,
       recipient.subscriptionTier,
     ].some((value) => (value || "").toLowerCase().includes(normalizedRecipientSearch));
+  });
+  const normalizedEngagementSearch = engagementSearchTerm.trim().toLowerCase();
+  const filteredRecipientAnalytics = recipientAnalytics.filter((recipient) => {
+    if (!normalizedEngagementSearch) {
+      return true;
+    }
+
+    return [recipient.email, recipient.name, recipient.status].some((value) =>
+      (value || "").toLowerCase().includes(normalizedEngagementSearch),
+    );
   });
 
   async function handleSaveChanges() {
@@ -671,6 +709,10 @@ export default function NewsletterDraftDetailPage() {
               processing: 0,
               sent: 0,
               failed: 0,
+              opened: 0,
+              clicked: 0,
+              appStoreClicks: 0,
+              googlePlayClicks: 0,
               total: payload.queuedCount,
             },
       );
@@ -782,7 +824,11 @@ export default function NewsletterDraftDetailPage() {
           pending: payload.remainingPending,
           processing: payload.remainingProcessing,
           sent: previousSent + payload.sent,
-          failed: payload.remainingFailed,
+            failed: payload.remainingFailed,
+            opened: current?.opened || 0,
+            clicked: current?.clicked || 0,
+            appStoreClicks: current?.appStoreClicks || 0,
+            googlePlayClicks: current?.googlePlayClicks || 0,
         };
       });
 
@@ -1232,6 +1278,109 @@ export default function NewsletterDraftDetailPage() {
                 )}
               </aside>
             </div>
+
+            {recipientAnalytics.length > 0 && (
+              <section className="rounded-[1.5rem] border border-[#E5E7EB] bg-white p-5 shadow-[0_18px_44px_rgba(15,23,42,0.08)] lg:col-span-2">
+                <div className="flex flex-col gap-4 border-b border-[#E5E7EB] pb-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#1157D8]">
+                      Recipient engagement
+                    </p>
+                    <h2 className="mt-2 text-xl font-bold tracking-tight text-[#0B1220]">
+                      Opens and clicks by recipient
+                    </h2>
+                    <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-[#4B5563]">
+                      This table shows engagement after queued campaign emails begin sending.
+                    </p>
+                  </div>
+                  <div className="rounded-2xl bg-[#F8FAFC] px-4 py-3">
+                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#6B7280]">
+                      Email logs
+                    </p>
+                    <p className="mt-1 text-2xl font-bold text-[#0B1220]">
+                      {formatCount(recipientAnalytics.length)}
+                    </p>
+                  </div>
+                </div>
+
+                <label className="mt-4 grid gap-2">
+                  <span className="text-xs font-bold uppercase tracking-[0.16em] text-[#6B7280]">
+                    Search engagement
+                  </span>
+                  <input
+                    value={engagementSearchTerm}
+                    onChange={(event) => setEngagementSearchTerm(event.target.value)}
+                    placeholder="Search by email, name, or delivery status"
+                    className="h-11 rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] px-4 text-sm font-semibold text-[#0B1220] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#1157D8] focus:bg-white"
+                  />
+                </label>
+
+                <div className="mt-4 max-h-[32rem] overflow-auto rounded-2xl border border-[#E5E7EB]">
+                  {filteredRecipientAnalytics.length === 0 ? (
+                    <p className="px-4 py-6 text-sm font-semibold text-[#4B5563]">
+                      No engagement rows found.
+                    </p>
+                  ) : (
+                    <table className="w-full min-w-[1180px] border-collapse text-left text-sm">
+                      <thead className="sticky top-0 bg-white text-xs font-bold uppercase tracking-[0.16em] text-[#6B7280] shadow-sm">
+                        <tr>
+                          <th className="px-4 py-3">Email</th>
+                          <th className="px-4 py-3">Name</th>
+                          <th className="px-4 py-3">Delivery status</th>
+                          <th className="px-4 py-3">Opened</th>
+                          <th className="px-4 py-3">Opened at</th>
+                          <th className="px-4 py-3">Open count</th>
+                          <th className="px-4 py-3">Clicked</th>
+                          <th className="px-4 py-3">Click count</th>
+                          <th className="px-4 py-3">App Store clicks</th>
+                          <th className="px-4 py-3">Google Play clicks</th>
+                          <th className="px-4 py-3">Last clicked</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#E5E7EB]">
+                        {filteredRecipientAnalytics.map((recipient) => (
+                          <tr key={recipient.emailLogId}>
+                            <td className="px-4 py-3 font-semibold text-[#0B1220]">
+                              {recipient.email || "Not set"}
+                            </td>
+                            <td className="px-4 py-3 text-[#4B5563]">
+                              {recipient.name || "Not set"}
+                            </td>
+                            <td className="px-4 py-3 text-[#4B5563]">
+                              {titleCase(recipient.status || "unknown")}
+                            </td>
+                            <td className="px-4 py-3 text-[#4B5563]">
+                              {formatBoolean(recipient.opened)}
+                            </td>
+                            <td className="px-4 py-3 text-[#4B5563]">
+                              {formatDateTime(recipient.openedAt)}
+                            </td>
+                            <td className="px-4 py-3 text-[#4B5563]">
+                              {formatCount(recipient.openCount)}
+                            </td>
+                            <td className="px-4 py-3 text-[#4B5563]">
+                              {formatBoolean(recipient.clicked)}
+                            </td>
+                            <td className="px-4 py-3 text-[#4B5563]">
+                              {formatCount(recipient.clickCount)}
+                            </td>
+                            <td className="px-4 py-3 text-[#4B5563]">
+                              {formatCount(recipient.appStoreClicks)}
+                            </td>
+                            <td className="px-4 py-3 text-[#4B5563]">
+                              {formatCount(recipient.googlePlayClicks)}
+                            </td>
+                            <td className="px-4 py-3 text-[#4B5563]">
+                              {formatDateTime(recipient.lastClickedAt)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              </section>
+            )}
           </div>
         ) : null}
       </section>
