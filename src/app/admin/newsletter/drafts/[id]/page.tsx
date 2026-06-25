@@ -77,6 +77,32 @@ type SendPendingResponse =
       error: string;
     };
 
+type RecipientPreviewRow = {
+  email: string;
+  name: string;
+  newsletterName: string;
+  appFullName: string;
+  audienceSegment: string;
+  newsletterSources: unknown;
+  hasAppAccount: boolean | null;
+  subscriptionStatus: string | null;
+  subscriptionTier: string | null;
+  onboardingCompleted: boolean | null;
+};
+
+type RecipientPreviewResponse =
+  | {
+      success: true;
+      targetAudience: Audience;
+      total: number;
+      segmentBreakdown: Record<string, number>;
+      recipients: RecipientPreviewRow[];
+    }
+  | {
+      success: false;
+      error: string;
+    };
+
 type CampaignAnalytics = {
   pending: number;
   processing: number;
@@ -185,6 +211,30 @@ function formatCount(value: number | null | undefined) {
   return typeof value === "number" ? value.toLocaleString() : "0";
 }
 
+function formatBoolean(value: boolean | null | undefined) {
+  if (value === true) {
+    return "Yes";
+  }
+
+  if (value === false) {
+    return "No";
+  }
+
+  return "Unknown";
+}
+
+function formatNewsletterSources(value: unknown) {
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === "string").join(", ") || "Not set";
+  }
+
+  if (typeof value === "string") {
+    return value || "Not set";
+  }
+
+  return "Not set";
+}
+
 function getStatusBanner(value: string) {
   if (value === "queued") {
     return {
@@ -238,6 +288,11 @@ export default function NewsletterDraftDetailPage() {
   const [analytics, setAnalytics] = useState<CampaignAnalytics | null>(null);
   const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
   const [analyticsErrorMessage, setAnalyticsErrorMessage] = useState("");
+  const [recipientPreview, setRecipientPreview] = useState<RecipientPreviewRow[]>([]);
+  const [recipientSegmentBreakdown, setRecipientSegmentBreakdown] = useState<Record<string, number>>({});
+  const [isLoadingRecipientPreview, setIsLoadingRecipientPreview] = useState(false);
+  const [recipientPreviewErrorMessage, setRecipientPreviewErrorMessage] = useState("");
+  const [recipientSearchTerm, setRecipientSearchTerm] = useState("");
 
   useEffect(() => {
     let isMounted = true;
@@ -318,6 +373,50 @@ export default function NewsletterDraftDetailPage() {
           }
         });
 
+      async function loadRecipientPreview(accessToken: string) {
+        setIsLoadingRecipientPreview(true);
+        setRecipientPreviewErrorMessage("");
+
+        try {
+          const previewResponse = await fetch(
+            `/api/admin/newsletter/recipient-preview?draftId=${encodeURIComponent(draftId)}`,
+            {
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+              },
+            },
+          );
+          const previewPayload = (await previewResponse.json()) as RecipientPreviewResponse;
+
+          if (!isMounted) {
+            return;
+          }
+
+          if (!previewResponse.ok || !previewPayload.success) {
+            setRecipientPreview([]);
+            setRecipientSegmentBreakdown({});
+            setRecipientPreviewErrorMessage(
+              previewPayload.success ? "Could not load recipient preview." : previewPayload.error,
+            );
+          } else {
+            setRecipientPreview(previewPayload.recipients);
+            setRecipientSegmentBreakdown(previewPayload.segmentBreakdown);
+          }
+        } catch (previewError) {
+          if (isMounted) {
+            setRecipientPreview([]);
+            setRecipientSegmentBreakdown({});
+            setRecipientPreviewErrorMessage(
+              previewError instanceof Error ? previewError.message : "Could not load recipient preview.",
+            );
+          }
+        } finally {
+          if (isMounted) {
+            setIsLoadingRecipientPreview(false);
+          }
+        }
+      }
+
       try {
         const response = await fetch(`/api/admin/newsletter/drafts?id=${encodeURIComponent(draftId)}`, {
           headers: {
@@ -343,6 +442,7 @@ export default function NewsletterDraftDetailPage() {
         setStatus(payload.draft.status || "draft");
         setCreatedDate(payload.draft.created_date);
         setUpdatedDate(payload.draft.updated_date);
+        void loadRecipientPreview(session.access_token);
 
         setIsLoadingAnalytics(true);
         setAnalyticsErrorMessage("");
@@ -400,9 +500,31 @@ export default function NewsletterDraftDetailPage() {
   const estimatedRecipients = getRecipientEstimate(recipientCounts, audience);
   const isLockedCampaign = status === "queued" || status === "sent";
   const statusBanner = getStatusBanner(status);
-  const canQueueCampaign = status === "draft" && !queueSuccessMessage && !hasLegacyAudience;
+  const canQueueCampaign =
+    status === "draft" &&
+    !queueSuccessMessage &&
+    !hasLegacyAudience &&
+    !isLoadingRecipientPreview &&
+    !recipientPreviewErrorMessage &&
+    recipientPreview.length > 0;
   const canSendPendingCampaign =
     status === "queued" && !isSendingPending && (analytics?.pending || 0) > 0;
+  const normalizedRecipientSearch = recipientSearchTerm.trim().toLowerCase();
+  const filteredRecipientPreview = recipientPreview.filter((recipient) => {
+    if (!normalizedRecipientSearch) {
+      return true;
+    }
+
+    return [
+      recipient.email,
+      recipient.name,
+      recipient.newsletterName,
+      recipient.appFullName,
+      recipient.audienceSegment,
+      recipient.subscriptionStatus,
+      recipient.subscriptionTier,
+    ].some((value) => (value || "").toLowerCase().includes(normalizedRecipientSearch));
+  });
 
   async function handleSaveChanges() {
     if (isLockedCampaign) {
@@ -453,6 +575,40 @@ export default function NewsletterDraftDetailPage() {
       setStatus(payload.draft.status || "draft");
       setCreatedDate(payload.draft.created_date);
       setUpdatedDate(payload.draft.updated_date);
+      setIsLoadingRecipientPreview(true);
+      setRecipientPreviewErrorMessage("");
+
+      try {
+        const previewResponse = await fetch(
+          `/api/admin/newsletter/recipient-preview?draftId=${encodeURIComponent(draftId)}`,
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          },
+        );
+        const previewPayload = (await previewResponse.json()) as RecipientPreviewResponse;
+
+        if (!previewResponse.ok || !previewPayload.success) {
+          setRecipientPreview([]);
+          setRecipientSegmentBreakdown({});
+          setRecipientPreviewErrorMessage(
+            previewPayload.success ? "Could not load recipient preview." : previewPayload.error,
+          );
+        } else {
+          setRecipientPreview(previewPayload.recipients);
+          setRecipientSegmentBreakdown(previewPayload.segmentBreakdown);
+        }
+      } catch (previewError) {
+        setRecipientPreview([]);
+        setRecipientSegmentBreakdown({});
+        setRecipientPreviewErrorMessage(
+          previewError instanceof Error ? previewError.message : "Could not load recipient preview.",
+        );
+      } finally {
+        setIsLoadingRecipientPreview(false);
+      }
+
       setSaveSuccessMessage("Draft changes saved.");
     } catch (error) {
       setSaveErrorMessage(error instanceof Error ? error.message : "Could not update newsletter draft.");
@@ -824,6 +980,118 @@ export default function NewsletterDraftDetailPage() {
                     className="min-h-80 rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] px-4 py-4 text-sm font-medium leading-6 text-[#0B1220] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#1157D8] focus:bg-white"
                   />
                 </label>
+
+                <section className="rounded-[1.5rem] border border-[#E5E7EB] bg-[#F8FAFC] p-5">
+                  <div className="flex flex-col gap-4 border-b border-[#E5E7EB] pb-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#1157D8]">
+                        Recipient preview
+                      </p>
+                      <h2 className="mt-2 text-xl font-bold tracking-tight text-[#0B1220]">
+                        Review before queueing
+                      </h2>
+                      <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-[#4B5563]">
+                        Queueing and sending should only happen after reviewing this recipient list.
+                        This preview does not queue or send emails.
+                      </p>
+                    </div>
+                    <div className="rounded-2xl bg-white px-4 py-3 shadow-sm">
+                      <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#6B7280]">
+                        Total recipients
+                      </p>
+                      <p className="mt-1 text-2xl font-bold text-[#0B1220]">
+                        {isLoadingRecipientPreview ? "..." : formatCount(recipientPreview.length)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {recipientPreviewErrorMessage ? (
+                    <p className="mt-4 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
+                      {recipientPreviewErrorMessage}
+                    </p>
+                  ) : (
+                    <>
+                      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                        {Object.entries(recipientSegmentBreakdown).map(([segment, count]) => (
+                          <div key={segment} className="rounded-2xl bg-white px-4 py-3 shadow-sm">
+                            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#6B7280]">
+                              {titleCase(segment)}
+                            </p>
+                            <p className="mt-1 text-xl font-bold text-[#0B1220]">
+                              {formatCount(count)}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+
+                      <label className="mt-4 grid gap-2">
+                        <span className="text-xs font-bold uppercase tracking-[0.16em] text-[#6B7280]">
+                          Search recipients
+                        </span>
+                        <input
+                          value={recipientSearchTerm}
+                          onChange={(event) => setRecipientSearchTerm(event.target.value)}
+                          placeholder="Search by email, name, segment, or subscription"
+                          className="h-11 rounded-xl border border-[#E5E7EB] bg-white px-4 text-sm font-semibold text-[#0B1220] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#1157D8]"
+                        />
+                      </label>
+
+                      <div className="mt-4 max-h-96 overflow-auto rounded-2xl border border-[#E5E7EB] bg-white">
+                        {isLoadingRecipientPreview ? (
+                          <p className="px-4 py-6 text-sm font-semibold text-[#4B5563]">
+                            Loading recipient preview...
+                          </p>
+                        ) : filteredRecipientPreview.length === 0 ? (
+                          <p className="px-4 py-6 text-sm font-semibold text-[#4B5563]">
+                            No recipients found.
+                          </p>
+                        ) : (
+                          <table className="w-full min-w-[980px] border-collapse text-left text-sm">
+                            <thead className="sticky top-0 bg-white text-xs font-bold uppercase tracking-[0.16em] text-[#6B7280] shadow-sm">
+                              <tr>
+                                <th className="px-4 py-3">Email</th>
+                                <th className="px-4 py-3">Name</th>
+                                <th className="px-4 py-3">Segment</th>
+                                <th className="px-4 py-3">Sources</th>
+                                <th className="px-4 py-3">App account</th>
+                                <th className="px-4 py-3">Subscription</th>
+                                <th className="px-4 py-3">Onboarded</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-[#E5E7EB]">
+                              {filteredRecipientPreview.map((recipient) => (
+                                <tr key={recipient.email}>
+                                  <td className="px-4 py-3 font-semibold text-[#0B1220]">
+                                    {recipient.email}
+                                  </td>
+                                  <td className="px-4 py-3 text-[#4B5563]">
+                                    {recipient.name || "Not set"}
+                                  </td>
+                                  <td className="px-4 py-3 text-[#4B5563]">
+                                    {titleCase(recipient.audienceSegment || "unknown")}
+                                  </td>
+                                  <td className="px-4 py-3 text-[#4B5563]">
+                                    {formatNewsletterSources(recipient.newsletterSources)}
+                                  </td>
+                                  <td className="px-4 py-3 text-[#4B5563]">
+                                    {formatBoolean(recipient.hasAppAccount)}
+                                  </td>
+                                  <td className="px-4 py-3 text-[#4B5563]">
+                                    {recipient.subscriptionStatus || "Not set"}
+                                    {recipient.subscriptionTier ? ` / ${recipient.subscriptionTier}` : ""}
+                                  </td>
+                                  <td className="px-4 py-3 text-[#4B5563]">
+                                    {formatBoolean(recipient.onboardingCompleted)}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </section>
 
                 <label className="grid gap-2">
                   <span className="text-xs font-bold uppercase tracking-[0.16em] text-[#6B7280]">
