@@ -60,6 +60,23 @@ type QueueCampaignResponse =
       error: string;
     };
 
+type SendPendingResponse =
+  | {
+      success: true;
+      processed: number;
+      sent: number;
+      failed: number;
+      remainingPending: number;
+      remainingProcessing: number;
+      remainingFailed: number;
+      campaignCompleted: boolean;
+      message?: string;
+    }
+  | {
+      success: false;
+      error: string;
+    };
+
 type CampaignAnalytics = {
   pending: number;
   processing: number;
@@ -211,6 +228,9 @@ export default function NewsletterDraftDetailPage() {
   const [isQueueing, setIsQueueing] = useState(false);
   const [queueSuccessMessage, setQueueSuccessMessage] = useState("");
   const [queueErrorMessage, setQueueErrorMessage] = useState("");
+  const [isSendingPending, setIsSendingPending] = useState(false);
+  const [sendPendingSuccessMessage, setSendPendingSuccessMessage] = useState("");
+  const [sendPendingErrorMessage, setSendPendingErrorMessage] = useState("");
   const [hasLegacyAudience, setHasLegacyAudience] = useState(false);
   const [recipientCounts, setRecipientCounts] = useState<RecipientCounts | null>(null);
   const [isLoadingEstimate, setIsLoadingEstimate] = useState(false);
@@ -381,6 +401,8 @@ export default function NewsletterDraftDetailPage() {
   const isLockedCampaign = status === "queued" || status === "sent";
   const statusBanner = getStatusBanner(status);
   const canQueueCampaign = status === "draft" && !queueSuccessMessage && !hasLegacyAudience;
+  const canSendPendingCampaign =
+    status === "queued" && !isSendingPending && (analytics?.pending || 0) > 0;
 
   async function handleSaveChanges() {
     if (isLockedCampaign) {
@@ -549,6 +571,82 @@ export default function NewsletterDraftDetailPage() {
     }
   }
 
+  async function handleSendPendingBatch() {
+    const confirmed = window.confirm(
+      "Send the next batch of up to 10 pending emails for this queued campaign?",
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setIsSendingPending(true);
+    setSendPendingSuccessMessage("");
+    setSendPendingErrorMessage("");
+
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    const accessToken = sessionData.session?.access_token;
+
+    if (sessionError || !accessToken) {
+      setSendPendingErrorMessage(
+        sessionError?.message || "You need to sign in again before sending this campaign.",
+      );
+      setIsSendingPending(false);
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/admin/newsletter/send-pending", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          draftId,
+        }),
+      });
+      const payload = (await response.json()) as SendPendingResponse;
+
+      if (!response.ok || !payload.success) {
+        setSendPendingErrorMessage(
+          payload.success ? "Could not send pending emails." : payload.error,
+        );
+        return;
+      }
+
+      setAnalytics((current) => {
+        const total =
+          current?.total ||
+          payload.remainingPending + payload.remainingProcessing + payload.remainingFailed + payload.sent;
+        const previousSent = current?.sent || 0;
+
+        return {
+          total,
+          pending: payload.remainingPending,
+          processing: payload.remainingProcessing,
+          sent: previousSent + payload.sent,
+          failed: payload.remainingFailed,
+        };
+      });
+
+      if (payload.campaignCompleted) {
+        setStatus("sent");
+        setUpdatedDate(new Date().toISOString());
+      }
+
+      setSendPendingSuccessMessage(
+        `Batch processed ${payload.processed.toLocaleString()} emails: ${payload.sent.toLocaleString()} sent, ${payload.failed.toLocaleString()} failed.${payload.message ? ` ${payload.message}` : ""}`,
+      );
+    } catch (error) {
+      setSendPendingErrorMessage(
+        error instanceof Error ? error.message : "Could not send pending emails.",
+      );
+    } finally {
+      setIsSendingPending(false);
+    }
+  }
+
   return (
     <main className="min-h-screen bg-[#F5F7FB] px-5 py-12 text-[#111827]">
       <section className="mx-auto w-full max-w-7xl">
@@ -620,6 +718,18 @@ export default function NewsletterDraftDetailPage() {
         {queueErrorMessage && (
           <p className="mt-6 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
             {queueErrorMessage}
+          </p>
+        )}
+
+        {sendPendingSuccessMessage && (
+          <p className="mt-6 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
+            {sendPendingSuccessMessage}
+          </p>
+        )}
+
+        {sendPendingErrorMessage && (
+          <p className="mt-6 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
+            {sendPendingErrorMessage}
           </p>
         )}
 
@@ -839,6 +949,17 @@ export default function NewsletterDraftDetailPage() {
                         </p>
                       </div>
                     ))}
+                    <button
+                      type="button"
+                      onClick={handleSendPendingBatch}
+                      disabled={!canSendPendingCampaign}
+                      className="mt-2 h-11 rounded-xl bg-[#1157D8] px-5 text-sm font-bold text-white shadow-[0_14px_32px_rgba(17,87,216,0.22)] transition hover:bg-[#0A39A8] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {isSendingPending ? "Sending batch..." : "Send next 10 pending"}
+                    </button>
+                    <p className="text-xs font-semibold leading-5 text-[#6B7280]">
+                      Sending is manual and batch-based. Queueing a campaign does not send emails automatically.
+                    </p>
                   </div>
                 )}
               </aside>
