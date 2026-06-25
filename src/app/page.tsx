@@ -14,6 +14,7 @@ const coachMikeImages = [
 
 type CheckoutPlan = "full_app" | "vip";
 type CheckoutStatus = "idle" | "loading" | "error";
+type NewsletterStatus = "idle" | "loading" | "success" | "error";
 
 export default function Home() {
   const heroVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -27,6 +28,10 @@ export default function Home() {
   const [checkoutConfirmPassword, setCheckoutConfirmPassword] = useState("");
   const [checkoutStatus, setCheckoutStatus] = useState<CheckoutStatus>("idle");
   const [checkoutErrorMessage, setCheckoutErrorMessage] = useState("");
+  const [newsletterName, setNewsletterName] = useState("");
+  const [newsletterEmail, setNewsletterEmail] = useState("");
+  const [newsletterStatus, setNewsletterStatus] = useState<NewsletterStatus>("idle");
+  const [newsletterMessage, setNewsletterMessage] = useState("");
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -149,6 +154,69 @@ export default function Home() {
     } catch {
       setCheckoutStatus("error");
       setCheckoutErrorMessage("Could not start checkout. Please try again.");
+    }
+  }
+
+  async function handleNewsletterSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const trimmedName = newsletterName.trim();
+    const trimmedEmail = newsletterEmail.trim().toLowerCase();
+
+    setNewsletterStatus("idle");
+    setNewsletterMessage("");
+
+    if (!trimmedName) {
+      setNewsletterStatus("error");
+      setNewsletterMessage("Full name is required.");
+      return;
+    }
+
+    if (!trimmedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      setNewsletterStatus("error");
+      setNewsletterMessage("A valid email is required.");
+      return;
+    }
+
+    setNewsletterStatus("loading");
+
+    try {
+      const response = await fetch("/api/waitlist", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: trimmedName,
+          email: trimmedEmail,
+          referralSource: "landing_newsletter_signup",
+        }),
+      });
+      const payload = (await response.json()) as {
+        success?: boolean;
+        code?: string;
+        error?: string;
+      };
+
+      if (response.ok && payload.success) {
+        setNewsletterStatus("success");
+        setNewsletterMessage("You’re on the newsletter list.");
+        setNewsletterName("");
+        setNewsletterEmail("");
+        return;
+      }
+
+      if (payload.code === "duplicate_email") {
+        setNewsletterStatus("success");
+        setNewsletterMessage("You’re already on the newsletter list.");
+        return;
+      }
+
+      setNewsletterStatus("error");
+      setNewsletterMessage(payload.error || "Could not join the newsletter.");
+    } catch {
+      setNewsletterStatus("error");
+      setNewsletterMessage("Could not join the newsletter.");
     }
   }
 
@@ -925,6 +993,75 @@ export default function Home() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-[#F5F7FB] px-5 pb-20">
+        <div className="mx-auto max-w-5xl rounded-[2rem] border border-[#E5E7EB] bg-white p-6 shadow-[0_18px_44px_rgba(15,23,42,0.08)] sm:p-8">
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(360px,1fr)] lg:items-center">
+            <div>
+              <p className="text-sm font-bold uppercase tracking-[0.22em] text-[#1157D8]">
+                Newsletter
+              </p>
+              <h2 className="mt-3 text-2xl font-bold tracking-tight text-[#0B1220] sm:text-3xl">
+                Join the Elite Pocket PT newsletter
+              </h2>
+              <p className="mt-3 text-base font-medium leading-7 text-[#4B5563]">
+                Get app updates, coaching education, launch offers, and performance nutrition insights from Coach Mike.
+              </p>
+              <p className="mt-4 text-sm font-semibold text-[#6B7280]">
+                No spam. Just useful coaching, app updates, and offers.
+              </p>
+            </div>
+
+            <form onSubmit={handleNewsletterSubmit} className="grid gap-3">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="grid gap-2">
+                  <span className="text-xs font-bold uppercase tracking-[0.16em] text-[#6B7280]">
+                    Full name
+                  </span>
+                  <input
+                    value={newsletterName}
+                    onChange={(event) => setNewsletterName(event.target.value)}
+                    disabled={newsletterStatus === "loading"}
+                    placeholder="Your name"
+                    className="h-12 rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] px-4 text-sm font-semibold text-[#0B1220] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#1157D8] focus:bg-white disabled:cursor-not-allowed disabled:opacity-70"
+                  />
+                </label>
+                <label className="grid gap-2">
+                  <span className="text-xs font-bold uppercase tracking-[0.16em] text-[#6B7280]">
+                    Email
+                  </span>
+                  <input
+                    type="email"
+                    value={newsletterEmail}
+                    onChange={(event) => setNewsletterEmail(event.target.value)}
+                    disabled={newsletterStatus === "loading"}
+                    placeholder="you@example.com"
+                    className="h-12 rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] px-4 text-sm font-semibold text-[#0B1220] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#1157D8] focus:bg-white disabled:cursor-not-allowed disabled:opacity-70"
+                  />
+                </label>
+              </div>
+              <button
+                type="submit"
+                disabled={newsletterStatus === "loading"}
+                className="h-12 rounded-xl bg-[#1157D8] px-5 text-sm font-bold text-white shadow-[0_14px_32px_rgba(17,87,216,0.22)] transition hover:bg-[#0A39A8] disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {newsletterStatus === "loading" ? "Joining..." : "Join newsletter"}
+              </button>
+              {newsletterMessage && (
+                <p
+                  className={`rounded-xl px-4 py-3 text-sm font-semibold ${
+                    newsletterStatus === "error"
+                      ? "border border-red-100 bg-red-50 text-red-600"
+                      : "border border-emerald-100 bg-emerald-50 text-emerald-700"
+                  }`}
+                >
+                  {newsletterMessage}
+                </p>
+              )}
+            </form>
           </div>
         </div>
       </section>
