@@ -27,6 +27,28 @@ type DraftsResponse =
       error: string;
     };
 
+type CampaignAnalytics = {
+  total: number;
+  pending: number;
+  processing: number;
+  sent: number;
+  failed: number;
+  opened: number;
+  clicked: number;
+  appStoreClicks: number;
+  googlePlayClicks: number;
+};
+
+type CampaignAnalyticsResponse =
+  | {
+      success: true;
+      analytics: CampaignAnalytics;
+    }
+  | {
+      success: false;
+      error: string;
+    };
+
 const kpiCards = [
   ["Total campaigns", "total"],
   ["Draft campaigns", "draft"],
@@ -128,6 +150,9 @@ export default function NewsletterAnalyticsPage() {
   const router = useRouter();
   const supabase = useMemo(() => createBrowserSupabaseClient(), []);
   const [drafts, setDrafts] = useState<NewsletterDraft[]>([]);
+  const [campaignAnalyticsById, setCampaignAnalyticsById] = useState<Record<string, CampaignAnalytics>>({});
+  const [campaignAnalyticsLoadingById, setCampaignAnalyticsLoadingById] = useState<Record<string, boolean>>({});
+  const [campaignAnalyticsErrorById, setCampaignAnalyticsErrorById] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -189,13 +214,88 @@ export default function NewsletterAnalyticsPage() {
         if (!response.ok || !payload.success) {
           setErrorMessage(payload.success ? "Could not load newsletter campaigns." : payload.error);
           setDrafts([]);
+          setCampaignAnalyticsById({});
+          setCampaignAnalyticsLoadingById({});
+          setCampaignAnalyticsErrorById({});
         } else {
           setDrafts(payload.drafts);
+          setCampaignAnalyticsById({});
+          setCampaignAnalyticsErrorById({});
+          setCampaignAnalyticsLoadingById(
+            Object.fromEntries(payload.drafts.map((draft) => [draft.id, true])),
+          );
+          setIsLoading(false);
+
+          const analyticsResults = await Promise.all(
+            payload.drafts.map(async (draft) => {
+              try {
+                const analyticsResponse = await fetch(
+                  `/api/admin/newsletter/campaigns/${encodeURIComponent(draft.id)}/analytics`,
+                  {
+                    headers: {
+                      Authorization: `Bearer ${session.access_token}`,
+                    },
+                  },
+                );
+                const analyticsPayload = (await analyticsResponse.json()) as CampaignAnalyticsResponse;
+
+                if (!analyticsResponse.ok || !analyticsPayload.success) {
+                  return {
+                    draftId: draft.id,
+                    analytics: null,
+                    error: analyticsPayload.success
+                      ? "Could not load campaign recap."
+                      : analyticsPayload.error,
+                  };
+                }
+
+                return {
+                  draftId: draft.id,
+                  analytics: analyticsPayload.analytics,
+                  error: "",
+                };
+              } catch (analyticsError) {
+                return {
+                  draftId: draft.id,
+                  analytics: null,
+                  error:
+                    analyticsError instanceof Error
+                      ? analyticsError.message
+                      : "Could not load campaign recap.",
+                };
+              }
+            }),
+          );
+
+          if (!isMounted) {
+            return;
+          }
+
+          setCampaignAnalyticsById(
+            Object.fromEntries(
+              analyticsResults
+                .filter((result) => result.analytics)
+                .map((result) => [result.draftId, result.analytics as CampaignAnalytics]),
+            ),
+          );
+          setCampaignAnalyticsErrorById(
+            Object.fromEntries(
+              analyticsResults
+                .filter((result) => result.error)
+                .map((result) => [result.draftId, result.error]),
+            ),
+          );
+          setCampaignAnalyticsLoadingById(
+            Object.fromEntries(payload.drafts.map((draft) => [draft.id, false])),
+          );
         }
       } catch (error) {
         if (isMounted) {
           setErrorMessage(error instanceof Error ? error.message : "Could not load newsletter campaigns.");
           setDrafts([]);
+          setCampaignAnalyticsById({});
+          setCampaignAnalyticsLoadingById({});
+          setCampaignAnalyticsErrorById({});
         }
       } finally {
         if (isMounted) {
@@ -288,7 +388,20 @@ export default function NewsletterAnalyticsPage() {
             </div>
           ) : (
             <div className="grid gap-4 p-4">
-              {drafts.map((draft) => (
+              {drafts.map((draft) => {
+                const analytics = campaignAnalyticsById[draft.id];
+                const isLoadingRecap = campaignAnalyticsLoadingById[draft.id];
+                const recapError = campaignAnalyticsErrorById[draft.id];
+                const recapItems: Array<[string, number]> = analytics
+                  ? [
+                      ["Sent", analytics.sent],
+                      ["Delivered", analytics.sent],
+                      ["Opened", analytics.opened],
+                      ["Clicks", analytics.appStoreClicks + analytics.googlePlayClicks],
+                    ]
+                  : [];
+
+                return (
                 <article key={draft.id} className="rounded-2xl border border-[#E5E7EB] bg-[#F8FAFC] p-5">
                   <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-start">
                     <div>
@@ -332,6 +445,46 @@ export default function NewsletterAnalyticsPage() {
                           <p className="mt-1 text-[#0B1220]">{titleCase(draft.status)}</p>
                         </div>
                       </div>
+
+                      <div className="mt-5 rounded-2xl border border-[#E5E7EB] bg-white p-4">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                          <div>
+                            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#1157D8]">
+                              Live recap
+                            </p>
+                            <p className="mt-1 text-xs font-semibold leading-5 text-[#94A3B8]">
+                              Delivered uses sent count until Resend delivery webhooks are connected.
+                            </p>
+                          </div>
+                        </div>
+
+                        {isLoadingRecap ? (
+                          <p className="mt-4 text-sm font-semibold text-[#4B5563]">
+                            Loading recap...
+                          </p>
+                        ) : recapError ? (
+                          <p className="mt-4 text-sm font-semibold text-red-600">
+                            Recap unavailable.
+                          </p>
+                        ) : analytics ? (
+                          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                            {recapItems.map(([label, value]) => (
+                              <div key={label} className="rounded-xl bg-[#F8FAFC] px-4 py-3">
+                                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#94A3B8]">
+                                  {label}
+                                </p>
+                                <p className="mt-1 text-xl font-bold text-[#0B1220]">
+                                  {formatCount(value)}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="mt-4 text-sm font-semibold text-[#4B5563]">
+                            Recap unavailable.
+                          </p>
+                        )}
+                      </div>
                     </div>
 
                     <Link
@@ -342,7 +495,8 @@ export default function NewsletterAnalyticsPage() {
                     </Link>
                   </div>
                 </article>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
