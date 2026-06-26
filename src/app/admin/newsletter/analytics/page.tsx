@@ -39,10 +39,26 @@ type CampaignAnalytics = {
   googlePlayClicks: number;
 };
 
+type RecipientAnalyticsRow = {
+  emailLogId: string;
+  email: string;
+  name: string;
+  status: string;
+  opened: boolean;
+  openedAt: string | null;
+  openCount: number;
+  clicked: boolean;
+  lastClickedAt: string | null;
+  clickCount: number;
+  appStoreClicks: number;
+  googlePlayClicks: number;
+};
+
 type CampaignAnalyticsResponse =
   | {
       success: true;
       analytics: CampaignAnalytics;
+      recipientAnalytics: RecipientAnalyticsRow[];
     }
   | {
       success: false;
@@ -55,6 +71,12 @@ const kpiCards = [
   ["Queued campaigns", "queued"],
   ["Sent campaigns", "sent"],
 ] as const;
+
+type RecapModalState = {
+  draftId: string;
+  subject: string;
+  type: "opened" | "clicked";
+} | null;
 
 function titleCase(value: string | null) {
   const trimmed = value?.trim();
@@ -151,8 +173,11 @@ export default function NewsletterAnalyticsPage() {
   const supabase = useMemo(() => createBrowserSupabaseClient(), []);
   const [drafts, setDrafts] = useState<NewsletterDraft[]>([]);
   const [campaignAnalyticsById, setCampaignAnalyticsById] = useState<Record<string, CampaignAnalytics>>({});
+  const [recipientAnalyticsById, setRecipientAnalyticsById] = useState<Record<string, RecipientAnalyticsRow[]>>({});
   const [campaignAnalyticsLoadingById, setCampaignAnalyticsLoadingById] = useState<Record<string, boolean>>({});
   const [campaignAnalyticsErrorById, setCampaignAnalyticsErrorById] = useState<Record<string, string>>({});
+  const [recapModal, setRecapModal] = useState<RecapModalState>(null);
+  const [recapSearchTerm, setRecapSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -215,11 +240,13 @@ export default function NewsletterAnalyticsPage() {
           setErrorMessage(payload.success ? "Could not load newsletter campaigns." : payload.error);
           setDrafts([]);
           setCampaignAnalyticsById({});
+          setRecipientAnalyticsById({});
           setCampaignAnalyticsLoadingById({});
           setCampaignAnalyticsErrorById({});
         } else {
           setDrafts(payload.drafts);
           setCampaignAnalyticsById({});
+          setRecipientAnalyticsById({});
           setCampaignAnalyticsErrorById({});
           setCampaignAnalyticsLoadingById(
             Object.fromEntries(payload.drafts.map((draft) => [draft.id, true])),
@@ -252,12 +279,14 @@ export default function NewsletterAnalyticsPage() {
                 return {
                   draftId: draft.id,
                   analytics: analyticsPayload.analytics,
+                  recipientAnalytics: analyticsPayload.recipientAnalytics,
                   error: "",
                 };
               } catch (analyticsError) {
                 return {
                   draftId: draft.id,
                   analytics: null,
+                  recipientAnalytics: [],
                   error:
                     analyticsError instanceof Error
                       ? analyticsError.message
@@ -278,6 +307,11 @@ export default function NewsletterAnalyticsPage() {
                 .map((result) => [result.draftId, result.analytics as CampaignAnalytics]),
             ),
           );
+          setRecipientAnalyticsById(
+            Object.fromEntries(
+              analyticsResults.map((result) => [result.draftId, result.recipientAnalytics || []]),
+            ),
+          );
           setCampaignAnalyticsErrorById(
             Object.fromEntries(
               analyticsResults
@@ -294,6 +328,7 @@ export default function NewsletterAnalyticsPage() {
           setErrorMessage(error instanceof Error ? error.message : "Could not load newsletter campaigns.");
           setDrafts([]);
           setCampaignAnalyticsById({});
+          setRecipientAnalyticsById({});
           setCampaignAnalyticsLoadingById({});
           setCampaignAnalyticsErrorById({});
         }
@@ -312,6 +347,30 @@ export default function NewsletterAnalyticsPage() {
   }, [router, supabase]);
 
   const kpis = buildKpis(drafts);
+  const modalRows = recapModal
+    ? (recipientAnalyticsById[recapModal.draftId] || []).filter((recipient) =>
+        recapModal.type === "opened" ? recipient.opened : recipient.clicked,
+      )
+    : [];
+  const normalizedRecapSearch = recapSearchTerm.trim().toLowerCase();
+  const filteredModalRows = modalRows.filter((recipient) => {
+    if (!normalizedRecapSearch) {
+      return true;
+    }
+
+    return [recipient.email, recipient.name].some((value) =>
+      (value || "").toLowerCase().includes(normalizedRecapSearch),
+    );
+  });
+
+  function openRecapModal(draft: NewsletterDraft, type: "opened" | "clicked") {
+    setRecapModal({
+      draftId: draft.id,
+      subject: draft.subject?.trim() || "Untitled campaign",
+      type,
+    });
+    setRecapSearchTerm("");
+  }
 
   return (
     <main className="min-h-screen bg-[#F5F7FB] px-5 py-12 text-[#111827]">
@@ -392,12 +451,12 @@ export default function NewsletterAnalyticsPage() {
                 const analytics = campaignAnalyticsById[draft.id];
                 const isLoadingRecap = campaignAnalyticsLoadingById[draft.id];
                 const recapError = campaignAnalyticsErrorById[draft.id];
-                const recapItems: Array<[string, number]> = analytics
+                const recapItems: Array<[string, number, "opened" | "clicked" | null]> = analytics
                   ? [
-                      ["Sent", analytics.sent],
-                      ["Delivered", analytics.sent],
-                      ["Opened", analytics.opened],
-                      ["Clicks", analytics.appStoreClicks + analytics.googlePlayClicks],
+                      ["Sent", analytics.sent, null],
+                      ["Delivered", analytics.sent, null],
+                      ["Opened", analytics.opened, "opened"],
+                      ["Clicks", analytics.appStoreClicks + analytics.googlePlayClicks, "clicked"],
                     ]
                   : [];
 
@@ -468,16 +527,32 @@ export default function NewsletterAnalyticsPage() {
                           </p>
                         ) : analytics ? (
                           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                            {recapItems.map(([label, value]) => (
-                              <div key={label} className="rounded-xl bg-[#F8FAFC] px-4 py-3">
-                                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#94A3B8]">
-                                  {label}
-                                </p>
-                                <p className="mt-1 text-xl font-bold text-[#0B1220]">
-                                  {formatCount(value)}
-                                </p>
-                              </div>
-                            ))}
+                            {recapItems.map(([label, value, modalType]) =>
+                              modalType ? (
+                                <button
+                                  key={label}
+                                  type="button"
+                                  onClick={() => openRecapModal(draft, modalType)}
+                                  className="rounded-xl bg-[#F8FAFC] px-4 py-3 text-left transition hover:bg-[#EEF5FF] focus:outline-none focus:ring-2 focus:ring-[#1157D8]/25"
+                                >
+                                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#1157D8]">
+                                    {label}
+                                  </p>
+                                  <p className="mt-1 text-xl font-bold text-[#0B1220]">
+                                    {formatCount(value)}
+                                  </p>
+                                </button>
+                              ) : (
+                                <div key={label} className="rounded-xl bg-[#F8FAFC] px-4 py-3">
+                                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#94A3B8]">
+                                    {label}
+                                  </p>
+                                  <p className="mt-1 text-xl font-bold text-[#0B1220]">
+                                    {formatCount(value)}
+                                  </p>
+                                </div>
+                              ),
+                            )}
                           </div>
                         ) : (
                           <p className="mt-4 text-sm font-semibold text-[#4B5563]">
@@ -501,6 +576,132 @@ export default function NewsletterAnalyticsPage() {
           )}
         </div>
       </section>
+
+      {recapModal && (
+        <div
+          className="fixed inset-0 z-[80] flex items-center justify-center bg-[#05070D]/70 px-5 py-8 backdrop-blur-md"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="recap-modal-title"
+        >
+          <button
+            type="button"
+            aria-label="Close recipient recap"
+            onClick={() => setRecapModal(null)}
+            className="absolute inset-0 cursor-default"
+          />
+          <div className="relative max-h-[85vh] w-full max-w-5xl overflow-hidden rounded-[2rem] border border-[#E5E7EB] bg-white shadow-[0_28px_90px_rgba(15,23,42,0.24)]">
+            <div className="flex flex-col gap-4 border-b border-[#E5E7EB] bg-[#F8FAFC] px-5 py-4 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#1157D8]">
+                  Live recap
+                </p>
+                <h2 id="recap-modal-title" className="mt-2 text-2xl font-bold tracking-tight text-[#0B1220]">
+                  {recapModal.type === "opened" ? "Opened recipients" : "Clicked recipients"}
+                </h2>
+                <p className="mt-1 text-sm font-semibold text-[#4B5563]">
+                  {recapModal.subject}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRecapModal(null)}
+                className="h-10 rounded-xl border border-[#E5E7EB] bg-white px-4 text-sm font-bold text-[#374151] shadow-sm transition hover:border-[#1157D8]/40 hover:text-[#1157D8]"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="p-5">
+              <label className="grid gap-2">
+                <span className="text-xs font-bold uppercase tracking-[0.16em] text-[#6B7280]">
+                  Search recipients
+                </span>
+                <input
+                  value={recapSearchTerm}
+                  onChange={(event) => setRecapSearchTerm(event.target.value)}
+                  placeholder="Search by email or name"
+                  className="h-11 rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] px-4 text-sm font-semibold text-[#0B1220] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#1157D8] focus:bg-white"
+                />
+              </label>
+
+              <div className="mt-4 max-h-[55vh] overflow-auto rounded-2xl border border-[#E5E7EB]">
+                {filteredModalRows.length === 0 ? (
+                  <p className="px-4 py-8 text-sm font-semibold text-[#4B5563]">
+                    No recipients found yet.
+                  </p>
+                ) : recapModal.type === "opened" ? (
+                  <table className="w-full min-w-[720px] border-collapse text-left text-sm">
+                    <thead className="sticky top-0 bg-white text-xs font-bold uppercase tracking-[0.16em] text-[#6B7280] shadow-sm">
+                      <tr>
+                        <th className="px-4 py-3">Email</th>
+                        <th className="px-4 py-3">Name</th>
+                        <th className="px-4 py-3">Open count</th>
+                        <th className="px-4 py-3">Opened at</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#E5E7EB]">
+                      {filteredModalRows.map((recipient) => (
+                        <tr key={recipient.emailLogId}>
+                          <td className="px-4 py-3 font-semibold text-[#0B1220]">
+                            {recipient.email || "Not set"}
+                          </td>
+                          <td className="px-4 py-3 text-[#4B5563]">
+                            {recipient.name || "Not set"}
+                          </td>
+                          <td className="px-4 py-3 text-[#4B5563]">
+                            {formatCount(recipient.openCount)}
+                          </td>
+                          <td className="px-4 py-3 text-[#4B5563]">
+                            {formatDateTime(recipient.openedAt)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <table className="w-full min-w-[920px] border-collapse text-left text-sm">
+                    <thead className="sticky top-0 bg-white text-xs font-bold uppercase tracking-[0.16em] text-[#6B7280] shadow-sm">
+                      <tr>
+                        <th className="px-4 py-3">Email</th>
+                        <th className="px-4 py-3">Name</th>
+                        <th className="px-4 py-3">Click count</th>
+                        <th className="px-4 py-3">App Store clicks</th>
+                        <th className="px-4 py-3">Google Play clicks</th>
+                        <th className="px-4 py-3">Last clicked</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#E5E7EB]">
+                      {filteredModalRows.map((recipient) => (
+                        <tr key={recipient.emailLogId}>
+                          <td className="px-4 py-3 font-semibold text-[#0B1220]">
+                            {recipient.email || "Not set"}
+                          </td>
+                          <td className="px-4 py-3 text-[#4B5563]">
+                            {recipient.name || "Not set"}
+                          </td>
+                          <td className="px-4 py-3 text-[#4B5563]">
+                            {formatCount(recipient.clickCount)}
+                          </td>
+                          <td className="px-4 py-3 text-[#4B5563]">
+                            {formatCount(recipient.appStoreClicks)}
+                          </td>
+                          <td className="px-4 py-3 text-[#4B5563]">
+                            {formatCount(recipient.googlePlayClicks)}
+                          </td>
+                          <td className="px-4 py-3 text-[#4B5563]">
+                            {formatDateTime(recipient.lastClickedAt)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
