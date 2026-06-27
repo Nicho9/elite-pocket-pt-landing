@@ -865,7 +865,7 @@ export default function AdminUserPage() {
           }
 
           const { data: bodyweightData, error: bodyweightError } = await supabase
-            .from("weight_log")
+            .schema("public").from("admin_weight_log_detail")
             .select("date,weight_kg,body_fat_percentage,notes")
             .eq("user_email", data.email)
             .order("date", { ascending: false });
