@@ -4,9 +4,10 @@ import { Resend } from "resend";
 import { requireNewsletterAdmin } from "../auth";
 import { errorResponse, jsonResponse } from "../responses";
 import {
+  buildNewsletterEmailHtml,
   escapeHtml,
+  formatNewsletterBodyHtmlForEmail,
   newsletterTrackedLinks,
-  normalizeNewsletterBodyHtml,
 } from "../../../../../lib/newsletterHtml";
 
 const batchSize = 10;
@@ -101,53 +102,22 @@ function buildEmailHtml(payload: {
   campaignType: string;
   trackingToken: string;
 }) {
-  const previewText = payload.previewText.trim();
-  const escapedPreview = escapeHtml(previewText);
   const trackingToken = payload.trackingToken.trim();
-  const safeBody = addTrackedLinks(normalizeNewsletterBodyHtml(payload.body), trackingToken);
+  const safeBody = addTrackedLinks(formatNewsletterBodyHtmlForEmail(payload.body), trackingToken);
   const escapedCampaignType = escapeHtml(payload.campaignType || "newsletter");
   const trackingPixelHtml = trackingToken
     ? `<img src="${siteUrl}/api/newsletter/open/${trackingToken}.png" width="1" height="1" alt="" style="display:none;height:1px;width:1px;border:0;" />`
     : "";
 
-  return `<!doctype html>
-<html>
-  <body style="margin:0;background:#f5f7fb;font-family:Arial,Helvetica,sans-serif;color:#0b1220;">
-    <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">
-      ${escapedPreview}
-    </div>
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f5f7fb;padding:32px 16px;">
-      <tr>
-        <td align="center">
-          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:640px;background:#ffffff;border:1px solid #e5e7eb;border-radius:24px;overflow:hidden;">
-            <tr>
-              <td style="background:#0b1220;padding:28px 32px;color:#ffffff;">
-                <p style="margin:0 0 8px;font-size:12px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#93c5fd;">Elite Pocket PT</p>
-                <h1 style="margin:0;font-size:24px;line-height:1.25;font-weight:800;">Elite Pocket PT Newsletter</h1>
-              </td>
-            </tr>
-            <tr>
-              <td style="padding:28px 32px;">
-                ${
-                  previewText
-                    ? `<p style="margin:0 0 18px;font-size:14px;line-height:1.6;color:#4b5563;">${escapedPreview}</p>`
-                    : ""
-                }
-                <div style="font-size:16px;line-height:1.7;color:#111827;">
-                  ${safeBody}
-                </div>
-                ${trackingPixelHtml}
-                <div style="margin-top:28px;padding-top:18px;border-top:1px solid #e5e7eb;font-size:12px;line-height:1.6;color:#6b7280;">
-                  Campaign type: ${escapedCampaignType}
-                </div>
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-    </table>
-  </body>
-</html>`;
+  return buildNewsletterEmailHtml({
+    title: "Elite Pocket PT Newsletter",
+    previewText: payload.previewText,
+    bodyHtml: safeBody,
+    trackingPixelHtml,
+    footerHtml: `<div style="margin-top:28px;padding-top:18px;border-top:1px solid #e5e7eb;font-size:13px;line-height:1.6;color:#6b7280;">
+      Campaign type: ${escapedCampaignType}
+    </div>`,
+  });
 }
 
 async function requireAdmin(request: Request) {

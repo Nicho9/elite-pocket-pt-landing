@@ -2,7 +2,11 @@ import { Resend } from "resend";
 
 import { requireNewsletterAdmin } from "../auth";
 import { errorResponse, jsonResponse } from "../responses";
-import { escapeHtml, normalizeNewsletterBodyHtml } from "../../../../../lib/newsletterHtml";
+import {
+  buildNewsletterEmailHtml,
+  escapeHtml,
+  formatNewsletterBodyHtmlForEmail,
+} from "../../../../../lib/newsletterHtml";
 
 type TestSendBody = {
   subject?: unknown;
@@ -23,53 +27,21 @@ function buildEmailHtml(payload: {
   campaignType: string;
   targetAudience: string;
 }) {
-  const previewText = payload.previewText.trim();
-  const escapedPreview = escapeHtml(previewText);
-  const safeBody = normalizeNewsletterBodyHtml(payload.body);
+  const safeBody = formatNewsletterBodyHtmlForEmail(payload.body);
   const escapedCampaignType = escapeHtml(payload.campaignType || "newsletter");
   const escapedTargetAudience = escapeHtml(payload.targetAudience || "all_newsletter_contacts");
 
-  return `<!doctype html>
-<html>
-  <body style="margin:0;background:#f5f7fb;font-family:Arial,Helvetica,sans-serif;color:#0b1220;">
-    <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">
-      ${escapedPreview}
-    </div>
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f5f7fb;padding:32px 16px;">
-      <tr>
-        <td align="center">
-          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:640px;background:#ffffff;border:1px solid #e5e7eb;border-radius:24px;overflow:hidden;">
-            <tr>
-              <td style="background:#0b1220;padding:28px 32px;color:#ffffff;">
-                <p style="margin:0 0 8px;font-size:12px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#93c5fd;">Elite Pocket PT</p>
-                <h1 style="margin:0;font-size:24px;line-height:1.25;font-weight:800;">Newsletter Test Email</h1>
-              </td>
-            </tr>
-            <tr>
-              <td style="padding:28px 32px;">
-                ${
-                  previewText
-                    ? `<p style="margin:0 0 18px;font-size:14px;line-height:1.6;color:#4b5563;">${escapedPreview}</p>`
-                    : ""
-                }
-                <div style="margin:0 0 24px;padding:14px 16px;border-radius:14px;background:#eff6ff;color:#1d4ed8;font-size:13px;font-weight:700;">
-                  This is a test newsletter email. No campaign has been queued.
-                </div>
-                <div style="font-size:16px;line-height:1.7;color:#111827;">
-                  ${safeBody}
-                </div>
-                <div style="margin-top:28px;padding-top:18px;border-top:1px solid #e5e7eb;font-size:12px;line-height:1.6;color:#6b7280;">
-                  Campaign type: ${escapedCampaignType}<br />
-                  Audience: ${escapedTargetAudience}
-                </div>
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-    </table>
-  </body>
-</html>`;
+  return buildNewsletterEmailHtml({
+    title: "Newsletter Test Email",
+    previewText: payload.previewText,
+    bodyHtml: safeBody,
+    noticeHtml:
+      '<div style="margin:0 0 24px;padding:14px 16px;border-radius:14px;background:#eff6ff;color:#1d4ed8;font-size:14px;line-height:1.5;font-weight:700;">This is a test newsletter email. No campaign has been queued.</div>',
+    footerHtml: `<div style="margin-top:28px;padding-top:18px;border-top:1px solid #e5e7eb;font-size:13px;line-height:1.6;color:#6b7280;">
+      Campaign type: ${escapedCampaignType}<br />
+      Audience: ${escapedTargetAudience}
+    </div>`,
+  });
 }
 
 export async function POST(request: Request) {
