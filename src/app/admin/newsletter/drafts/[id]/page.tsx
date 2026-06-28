@@ -2,8 +2,14 @@
 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createBrowserSupabaseClient } from "../../../../../lib/supabaseClient";
+import {
+  buildResponsiveImageHtml,
+  buildVideoLinkHtml,
+  normalizeNewsletterBodyHtml,
+  sanitizeNewsletterHtml,
+} from "../../../../../lib/newsletterHtml";
 
 type CampaignType = "newsletter" | "launch" | "promotion" | "update";
 type Audience =
@@ -24,6 +30,7 @@ type NewsletterDraft = {
   created_date: string | null;
   updated_date: string | null;
   subject: string | null;
+  preview_text: string | null;
   body: string | null;
   target_audience: string[] | null;
   campaign_type: string | null;
@@ -112,6 +119,7 @@ type CampaignAnalytics = {
   clicked: number;
   appStoreClicks: number;
   googlePlayClicks: number;
+  appleFounder20Clicks: number;
   total: number;
 };
 
@@ -128,6 +136,7 @@ type RecipientEngagementRow = {
   clickCount: number;
   appStoreClicks: number;
   googlePlayClicks: number;
+  appleFounder20Clicks: number;
 };
 
 type CampaignAnalyticsResponse =
@@ -158,6 +167,7 @@ const analyticsCards: Array<[string, keyof CampaignAnalytics]> = [
   ["Clicked", "clicked"],
   ["App Store clicks", "appStoreClicks"],
   ["Google Play clicks", "googlePlayClicks"],
+  ["Apple FOUNDER20 clicks", "appleFounder20Clicks"],
 ];
 
 function titleCase(value: string) {
@@ -319,6 +329,7 @@ export default function NewsletterDraftDetailPage() {
   const [isLoadingRecipientPreview, setIsLoadingRecipientPreview] = useState(false);
   const [recipientPreviewErrorMessage, setRecipientPreviewErrorMessage] = useState("");
   const [recipientSearchTerm, setRecipientSearchTerm] = useState("");
+  const editorRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -461,6 +472,7 @@ export default function NewsletterDraftDetailPage() {
         }
 
         setSubject(payload.draft.subject || "");
+        setPreviewText(payload.draft.preview_text || "");
         setCampaignType(toCampaignType(payload.draft.campaign_type));
         setAudience(toAudience(payload.draft.target_audience));
         setHasLegacyAudience(!isCanonicalTargetAudience(payload.draft.target_audience));
@@ -563,6 +575,101 @@ export default function NewsletterDraftDetailPage() {
       (value || "").toLowerCase().includes(normalizedEngagementSearch),
     );
   });
+  const sanitizedPreviewBody = useMemo(() => normalizeNewsletterBodyHtml(body), [body]);
+
+  function syncEditorBody() {
+    const nextHtml = sanitizeNewsletterHtml(editorRef.current?.innerHTML || "");
+
+    setBody(nextHtml);
+  }
+
+  function runEditorCommand(command: string, value?: string) {
+    editorRef.current?.focus();
+    document.execCommand(command, false, value);
+    syncEditorBody();
+  }
+
+  function applyParagraphFormat(tagName: "p" | "h2" | "h3") {
+    runEditorCommand("formatBlock", tagName);
+  }
+
+  function createLink() {
+    const href = window.prompt("Enter link URL");
+
+    if (!href?.trim()) {
+      return;
+    }
+
+    const trimmedHref = href.trim();
+
+    if (!/^(https?:|mailto:)/i.test(trimmedHref)) {
+      window.alert("Links must start with http://, https://, or mailto:");
+      return;
+    }
+
+    runEditorCommand("createLink", trimmedHref);
+  }
+
+  function insertHtmlAtSelection(html: string) {
+    editorRef.current?.focus();
+    document.execCommand("insertHTML", false, html);
+    syncEditorBody();
+  }
+
+  function insertImage() {
+    const imageUrl = window.prompt("Image URL");
+
+    if (!imageUrl?.trim()) {
+      return;
+    }
+
+    if (!/^https?:\/\//i.test(imageUrl.trim())) {
+      window.alert("Image URLs must start with http:// or https://");
+      return;
+    }
+
+    const altText = window.prompt("Alt text for the image", "") || "";
+
+    insertHtmlAtSelection(buildResponsiveImageHtml(imageUrl.trim(), altText.trim()));
+  }
+
+  function insertVideoLink() {
+    const videoUrl = window.prompt("Video URL");
+
+    if (!videoUrl?.trim()) {
+      return;
+    }
+
+    if (!/^https?:\/\//i.test(videoUrl.trim())) {
+      window.alert("Video URLs must start with http:// or https://");
+      return;
+    }
+
+    const thumbnailUrl = window.prompt("Thumbnail image URL");
+
+    if (!thumbnailUrl?.trim()) {
+      return;
+    }
+
+    if (!/^https?:\/\//i.test(thumbnailUrl.trim())) {
+      window.alert("Thumbnail URLs must start with http:// or https://");
+      return;
+    }
+
+    const title = window.prompt("Video title", "Watch the video") || "";
+
+    insertHtmlAtSelection(buildVideoLinkHtml(videoUrl.trim(), thumbnailUrl.trim(), title.trim()));
+  }
+
+  useEffect(() => {
+    if (!editorRef.current || document.activeElement === editorRef.current) {
+      return;
+    }
+
+    if (editorRef.current.innerHTML !== sanitizedPreviewBody) {
+      editorRef.current.innerHTML = sanitizedPreviewBody;
+    }
+  }, [sanitizedPreviewBody]);
 
   async function handleSaveChanges() {
     if (isLockedCampaign) {
@@ -606,6 +713,7 @@ export default function NewsletterDraftDetailPage() {
       }
 
       setSubject(payload.draft.subject || "");
+      setPreviewText(payload.draft.preview_text || "");
       setCampaignType(toCampaignType(payload.draft.campaign_type));
       setAudience(toAudience(payload.draft.target_audience));
       setHasLegacyAudience(false);
@@ -713,6 +821,7 @@ export default function NewsletterDraftDetailPage() {
               clicked: 0,
               appStoreClicks: 0,
               googlePlayClicks: 0,
+              appleFounder20Clicks: 0,
               total: payload.queuedCount,
             },
       );
@@ -829,8 +938,9 @@ export default function NewsletterDraftDetailPage() {
             clicked: current?.clicked || 0,
             appStoreClicks: current?.appStoreClicks || 0,
             googlePlayClicks: current?.googlePlayClicks || 0,
-        };
-      });
+            appleFounder20Clicks: current?.appleFounder20Clicks || 0,
+          };
+        });
 
       if (payload.campaignCompleted) {
         setStatus("sent");
@@ -1015,17 +1125,89 @@ export default function NewsletterDraftDetailPage() {
                   </label>
                 </div>
 
-                <label className="grid gap-2">
-                  <span className="text-xs font-bold uppercase tracking-[0.16em] text-[#6B7280]">
-                    Rich text email body
-                  </span>
-                  <textarea
-                    value={body}
-                    onChange={(event) => setBody(event.target.value)}
-                    rows={14}
-                    className="min-h-80 rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] px-4 py-4 text-sm font-medium leading-6 text-[#0B1220] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#1157D8] focus:bg-white"
+                <section className="grid gap-3">
+                  <div>
+                    <span className="text-xs font-bold uppercase tracking-[0.16em] text-[#6B7280]">
+                      Rich email body
+                    </span>
+                    <p className="mt-1 text-xs font-semibold leading-5 text-[#6B7280]">
+                      Select text, then apply formatting. Images and video thumbnails are inserted as safe email HTML.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 rounded-2xl border border-[#E5E7EB] bg-white p-2">
+                    <button
+                      type="button"
+                      onClick={() => runEditorCommand("bold")}
+                      className="h-9 rounded-xl border border-[#E5E7EB] px-3 text-sm font-bold text-[#374151] transition hover:border-[#1157D8]/40 hover:text-[#1157D8]"
+                    >
+                      Bold
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyParagraphFormat("h2")}
+                      className="h-9 rounded-xl border border-[#E5E7EB] px-3 text-sm font-bold text-[#374151] transition hover:border-[#1157D8]/40 hover:text-[#1157D8]"
+                    >
+                      Heading
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyParagraphFormat("p")}
+                      className="h-9 rounded-xl border border-[#E5E7EB] px-3 text-sm font-bold text-[#374151] transition hover:border-[#1157D8]/40 hover:text-[#1157D8]"
+                    >
+                      Paragraph
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => runEditorCommand("insertUnorderedList")}
+                      className="h-9 rounded-xl border border-[#E5E7EB] px-3 text-sm font-bold text-[#374151] transition hover:border-[#1157D8]/40 hover:text-[#1157D8]"
+                    >
+                      Bullet list
+                    </button>
+                    <button
+                      type="button"
+                      onClick={createLink}
+                      className="h-9 rounded-xl border border-[#E5E7EB] px-3 text-sm font-bold text-[#374151] transition hover:border-[#1157D8]/40 hover:text-[#1157D8]"
+                    >
+                      Link
+                    </button>
+                    <button
+                      type="button"
+                      onClick={insertImage}
+                      className="h-9 rounded-xl border border-[#E5E7EB] px-3 text-sm font-bold text-[#374151] transition hover:border-[#1157D8]/40 hover:text-[#1157D8]"
+                    >
+                      Insert image
+                    </button>
+                    <button
+                      type="button"
+                      onClick={insertVideoLink}
+                      className="h-9 rounded-xl border border-[#E5E7EB] px-3 text-sm font-bold text-[#374151] transition hover:border-[#1157D8]/40 hover:text-[#1157D8]"
+                    >
+                      Insert video link
+                    </button>
+                  </div>
+
+                  <div
+                    ref={editorRef}
+                    contentEditable={!isLockedCampaign}
+                    suppressContentEditableWarning
+                    onInput={syncEditorBody}
+                    onBlur={syncEditorBody}
+                    className="newsletter-editor min-h-80 rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] px-4 py-4 text-sm font-medium leading-7 text-[#0B1220] outline-none transition empty:before:text-[#9CA3AF] focus:border-[#1157D8] focus:bg-white"
                   />
-                </label>
+                </section>
+
+                <section className="rounded-[1.5rem] border border-[#E5E7EB] bg-white p-5">
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#1157D8]">
+                    Email preview
+                  </p>
+                  <div
+                    className="newsletter-preview mt-4 rounded-2xl border border-[#E5E7EB] bg-[#F8FAFC] p-5 text-sm leading-7 text-[#111827]"
+                    dangerouslySetInnerHTML={{
+                      __html: sanitizedPreviewBody || "<p>Your formatted newsletter preview will appear here.</p>",
+                    }}
+                  />
+                </section>
 
                 <section className="rounded-[1.5rem] border border-[#E5E7EB] bg-[#F8FAFC] p-5">
                   <div className="flex flex-col gap-4 border-b border-[#E5E7EB] pb-4 lg:flex-row lg:items-start lg:justify-between">
@@ -1334,6 +1516,7 @@ export default function NewsletterDraftDetailPage() {
                           <th className="px-4 py-3">Click count</th>
                           <th className="px-4 py-3">App Store clicks</th>
                           <th className="px-4 py-3">Google Play clicks</th>
+                          <th className="px-4 py-3">FOUNDER20 clicks</th>
                           <th className="px-4 py-3">Last clicked</th>
                         </tr>
                       </thead>
@@ -1369,6 +1552,9 @@ export default function NewsletterDraftDetailPage() {
                             </td>
                             <td className="px-4 py-3 text-[#4B5563]">
                               {formatCount(recipient.googlePlayClicks)}
+                            </td>
+                            <td className="px-4 py-3 text-[#4B5563]">
+                              {formatCount(recipient.appleFounder20Clicks)}
                             </td>
                             <td className="px-4 py-3 text-[#4B5563]">
                               {formatDateTime(recipient.lastClickedAt)}

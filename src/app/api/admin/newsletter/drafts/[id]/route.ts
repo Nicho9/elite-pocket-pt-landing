@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 
 import { requireNewsletterAdmin } from "../../auth";
 import { errorResponse, jsonResponse } from "../../responses";
+import { normalizeNewsletterBodyHtml } from "../../../../../../lib/newsletterHtml";
 
 type DraftUpdateBody = {
   subject?: unknown;
@@ -62,7 +63,8 @@ export async function PATCH(
   }
 
   const subject = typeof payload.subject === "string" ? payload.subject.trim() : "";
-  const body = typeof payload.body === "string" ? payload.body.trim() : "";
+  const previewText = typeof payload.previewText === "string" ? payload.previewText.trim() : "";
+  const body = typeof payload.body === "string" ? normalizeNewsletterBodyHtml(payload.body) : "";
   const rawCampaignType = payload.campaignType ?? payload.campaign_type;
   const rawTargetAudience = payload.targetAudience ?? payload.target_audience;
   const campaignType =
@@ -86,13 +88,14 @@ export async function PATCH(
     .from("marketing_email_draft")
     .update({
       subject,
+      preview_text: previewText,
       body,
       campaign_type: campaignType,
       target_audience: [targetAudience],
       updated_date: new Date().toISOString(),
     })
     .eq("id", draftId)
-    .select("id,created_date,updated_date,created_by,subject,body,target_audience,campaign_type,status,sent_count")
+    .select("id,created_date,updated_date,created_by,subject,preview_text,body,target_audience,campaign_type,status,sent_count")
     .maybeSingle();
 
   if (error) {

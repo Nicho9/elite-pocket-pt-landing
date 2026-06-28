@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 
 import { requireNewsletterAdmin } from "../auth";
 import { errorResponse, jsonResponse } from "../responses";
+import { normalizeNewsletterBodyHtml } from "../../../../../lib/newsletterHtml";
 
 type DraftRequestBody = {
   subject?: unknown;
@@ -60,7 +61,7 @@ export async function GET(request: Request) {
   if (draftId) {
     const { data, error } = await adminSupabase
       .from("marketing_email_draft")
-      .select("id,created_date,updated_date,created_by,subject,body,target_audience,campaign_type,status,sent_count,scheduled_date")
+      .select("id,created_date,updated_date,created_by,subject,preview_text,body,target_audience,campaign_type,status,sent_count,scheduled_date")
       .eq("id", draftId)
       .maybeSingle();
 
@@ -78,7 +79,7 @@ export async function GET(request: Request) {
 
   const { data, error } = await adminSupabase
     .from("marketing_email_draft")
-    .select("id,created_date,updated_date,created_by,subject,body,target_audience,campaign_type,status,sent_count,scheduled_date")
+    .select("id,created_date,updated_date,created_by,subject,preview_text,body,target_audience,campaign_type,status,sent_count,scheduled_date")
     .order("created_date", { ascending: false });
 
   if (error) {
@@ -105,7 +106,8 @@ export async function POST(request: Request) {
   }
 
   const subject = typeof payload.subject === "string" ? payload.subject.trim() : "";
-  const body = typeof payload.body === "string" ? payload.body.trim() : "";
+  const previewText = typeof payload.previewText === "string" ? payload.previewText.trim() : "";
+  const body = typeof payload.body === "string" ? normalizeNewsletterBodyHtml(payload.body) : "";
   const campaignType =
     typeof payload.campaignType === "string" ? payload.campaignType.trim() : "";
   const targetAudience =
@@ -128,13 +130,14 @@ export async function POST(request: Request) {
     .insert({
       created_by: admin.adminUserId,
       subject,
+      preview_text: previewText,
       body,
       campaign_type: campaignType,
       target_audience: [targetAudience],
       status: "draft",
       sent_count: 0,
     })
-    .select("id,created_date,updated_date,created_by,subject,body,target_audience,campaign_type,status,sent_count,scheduled_date")
+    .select("id,created_date,updated_date,created_by,subject,preview_text,body,target_audience,campaign_type,status,sent_count,scheduled_date")
     .single();
 
   if (error) {

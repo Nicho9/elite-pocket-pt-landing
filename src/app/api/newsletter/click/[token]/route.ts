@@ -5,6 +5,7 @@ const fallbackUrl = "https://www.elitepocketpt.com";
 const linkDestinations: Record<string, string> = {
   app_store: "https://apps.apple.com/ae/app/elite-pocket-pt/id6761879840",
   google_play: "https://play.google.com/store/apps/details?id=com.elitepocketpt.app",
+  apple_founder20: "https://apps.apple.com/redeem?ctx=offercodes&id=6761879840&code=FOUNDER20",
 };
 
 type EmailLogTrackingRow = {

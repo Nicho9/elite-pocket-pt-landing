@@ -37,6 +37,7 @@ type CampaignAnalytics = {
   clicked: number;
   appStoreClicks: number;
   googlePlayClicks: number;
+  appleFounder20Clicks: number;
 };
 
 type RecipientAnalyticsRow = {
@@ -52,6 +53,7 @@ type RecipientAnalyticsRow = {
   clickCount: number;
   appStoreClicks: number;
   googlePlayClicks: number;
+  appleFounder20Clicks: number;
 };
 
 type CampaignAnalyticsResponse =
@@ -456,7 +458,13 @@ export default function NewsletterAnalyticsPage() {
                       ["Sent", analytics.sent, null],
                       ["Delivered", analytics.sent, null],
                       ["Opened", analytics.opened, "opened"],
-                      ["Clicks", analytics.appStoreClicks + analytics.googlePlayClicks, "clicked"],
+                      [
+                        "Clicks",
+                        analytics.appStoreClicks +
+                          analytics.googlePlayClicks +
+                          analytics.appleFounder20Clicks,
+                        "clicked",
+                      ],
                     ]
                   : [];
 
@@ -668,6 +676,7 @@ export default function NewsletterAnalyticsPage() {
                         <th className="px-4 py-3">Click count</th>
                         <th className="px-4 py-3">App Store clicks</th>
                         <th className="px-4 py-3">Google Play clicks</th>
+                        <th className="px-4 py-3">FOUNDER20 clicks</th>
                         <th className="px-4 py-3">Last clicked</th>
                       </tr>
                     </thead>
@@ -688,6 +697,9 @@ export default function NewsletterAnalyticsPage() {
                           </td>
                           <td className="px-4 py-3 text-[#4B5563]">
                             {formatCount(recipient.googlePlayClicks)}
+                          </td>
+                          <td className="px-4 py-3 text-[#4B5563]">
+                            {formatCount(recipient.appleFounder20Clicks)}
                           </td>
                           <td className="px-4 py-3 text-[#4B5563]">
                             {formatDateTime(recipient.lastClickedAt)}

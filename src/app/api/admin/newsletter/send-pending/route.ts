@@ -3,11 +3,14 @@ import { Resend } from "resend";
 
 import { requireNewsletterAdmin } from "../auth";
 import { errorResponse, jsonResponse } from "../responses";
+import {
+  escapeHtml,
+  newsletterTrackedLinks,
+  normalizeNewsletterBodyHtml,
+} from "../../../../../lib/newsletterHtml";
 
 const batchSize = 10;
 const siteUrl = "https://www.elitepocketpt.com";
-const appStoreUrl = "https://apps.apple.com/ae/app/elite-pocket-pt/id6761879840";
-const googlePlayUrl = "https://play.google.com/store/apps/details?id=com.elitepocketpt.app";
 
 type SendPendingBody = {
   draftId?: unknown;
@@ -28,15 +31,6 @@ type NewsletterDraft = {
   status: string | null;
 };
 
-function escapeHtml(value: string) {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
-}
-
 function readString(value: unknown, key: string) {
   if (!value || typeof value !== "object" || !(key in value)) {
     return "";
@@ -44,6 +38,48 @@ function readString(value: unknown, key: string) {
 
   const nextValue = (value as Record<string, unknown>)[key];
   return typeof nextValue === "string" ? nextValue.trim() : "";
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function replaceTrackedLink(html: string, exactUrl: string, trackedUrl: string) {
+  const escapedExactUrl = escapeHtml(exactUrl);
+  const trackedAnchor = `<a href="${trackedUrl}" target="_blank" rel="noopener noreferrer" style="color:#1157d8;font-weight:700;">${escapedExactUrl}</a>`;
+  const urlPattern = new RegExp(
+    `${escapeRegExp(exactUrl)}|${escapeRegExp(escapedExactUrl)}`,
+    "g",
+  );
+
+  const htmlWithTrackedHrefs = html
+    .replaceAll(`href="${exactUrl}"`, `href="${trackedUrl}"`)
+    .replaceAll(`href="${escapedExactUrl}"`, `href="${trackedUrl}"`);
+
+  return htmlWithTrackedHrefs
+    .split(/(<a\b[\s\S]*?<\/a>)/gi)
+    .map((part) => (part.toLowerCase().startsWith("<a") ? part : part.replace(urlPattern, trackedAnchor)))
+    .join("");
+}
+
+function addTrackedLinks(html: string, trackingToken: string) {
+  if (!trackingToken) {
+    return html;
+  }
+
+  const trackedAppStoreUrl = `${siteUrl}/api/newsletter/click/${trackingToken}?link=app_store`;
+  const trackedGooglePlayUrl = `${siteUrl}/api/newsletter/click/${trackingToken}?link=google_play`;
+  const trackedAppleFounder20Url = `${siteUrl}/api/newsletter/click/${trackingToken}?link=apple_founder20`;
+
+  return replaceTrackedLink(
+    replaceTrackedLink(
+      replaceTrackedLink(html, newsletterTrackedLinks.appStoreUrl, trackedAppStoreUrl),
+      newsletterTrackedLinks.googlePlayUrl,
+      trackedGooglePlayUrl,
+    ),
+    newsletterTrackedLinks.appleFounder20Url,
+    trackedAppleFounder20Url,
+  );
 }
 
 function readSafeErrorMessage(error: unknown) {
@@ -68,20 +104,7 @@ function buildEmailHtml(payload: {
   const previewText = payload.previewText.trim();
   const escapedPreview = escapeHtml(previewText);
   const trackingToken = payload.trackingToken.trim();
-  const escapedAppStoreUrl = escapeHtml(appStoreUrl);
-  const escapedGooglePlayUrl = escapeHtml(googlePlayUrl);
-  const trackedAppStoreUrl = `${siteUrl}/api/newsletter/click/${trackingToken}?link=app_store`;
-  const trackedGooglePlayUrl = `${siteUrl}/api/newsletter/click/${trackingToken}?link=google_play`;
-  const escapedBody = escapeHtml(payload.body.trim())
-    .replaceAll(
-      escapedAppStoreUrl,
-      `<a href="${trackedAppStoreUrl}" style="color:#1157d8;font-weight:700;">${escapedAppStoreUrl}</a>`,
-    )
-    .replaceAll(
-      escapedGooglePlayUrl,
-      `<a href="${trackedGooglePlayUrl}" style="color:#1157d8;font-weight:700;">${escapedGooglePlayUrl}</a>`,
-    )
-    .replaceAll("\n", "<br />");
+  const safeBody = addTrackedLinks(normalizeNewsletterBodyHtml(payload.body), trackingToken);
   const escapedCampaignType = escapeHtml(payload.campaignType || "newsletter");
   const trackingPixelHtml = trackingToken
     ? `<img src="${siteUrl}/api/newsletter/open/${trackingToken}.png" width="1" height="1" alt="" style="display:none;height:1px;width:1px;border:0;" />`
@@ -111,7 +134,7 @@ function buildEmailHtml(payload: {
                     : ""
                 }
                 <div style="font-size:16px;line-height:1.7;color:#111827;">
-                  ${escapedBody}
+                  ${safeBody}
                 </div>
                 ${trackingPixelHtml}
                 <div style="margin-top:28px;padding-top:18px;border-top:1px solid #e5e7eb;font-size:12px;line-height:1.6;color:#6b7280;">

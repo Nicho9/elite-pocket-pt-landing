@@ -2,6 +2,7 @@ import { Resend } from "resend";
 
 import { requireNewsletterAdmin } from "../auth";
 import { errorResponse, jsonResponse } from "../responses";
+import { escapeHtml, normalizeNewsletterBodyHtml } from "../../../../../lib/newsletterHtml";
 
 type TestSendBody = {
   subject?: unknown;
@@ -11,15 +12,6 @@ type TestSendBody = {
   body?: unknown;
   testEmail?: unknown;
 };
-
-function escapeHtml(value: string) {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
-}
 
 function isEmailLike(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
@@ -33,7 +25,7 @@ function buildEmailHtml(payload: {
 }) {
   const previewText = payload.previewText.trim();
   const escapedPreview = escapeHtml(previewText);
-  const escapedBody = escapeHtml(payload.body.trim()).replaceAll("\n", "<br />");
+  const safeBody = normalizeNewsletterBodyHtml(payload.body);
   const escapedCampaignType = escapeHtml(payload.campaignType || "newsletter");
   const escapedTargetAudience = escapeHtml(payload.targetAudience || "all_newsletter_contacts");
 
@@ -64,7 +56,7 @@ function buildEmailHtml(payload: {
                   This is a test newsletter email. No campaign has been queued.
                 </div>
                 <div style="font-size:16px;line-height:1.7;color:#111827;">
-                  ${escapedBody}
+                  ${safeBody}
                 </div>
                 <div style="margin-top:28px;padding-top:18px;border-top:1px solid #e5e7eb;font-size:12px;line-height:1.6;color:#6b7280;">
                   Campaign type: ${escapedCampaignType}<br />

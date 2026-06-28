@@ -110,6 +110,7 @@ export async function GET(
     clicked: 0,
     appStoreClicks: 0,
     googlePlayClicks: 0,
+    appleFounder20Clicks: 0,
     total: 0,
   };
   const recipientClickCounts = new Map<
@@ -117,6 +118,7 @@ export async function GET(
     {
       appStoreClicks: number;
       googlePlayClicks: number;
+      appleFounder20Clicks: number;
     }
   >();
 
@@ -147,6 +149,7 @@ export async function GET(
       const counts = recipientClickCounts.get(row.email_log_id) || {
         appStoreClicks: 0,
         googlePlayClicks: 0,
+        appleFounder20Clicks: 0,
       };
 
       if (row.link_key === "app_store") {
@@ -155,6 +158,10 @@ export async function GET(
 
       if (row.link_key === "google_play") {
         counts.googlePlayClicks += 1;
+      }
+
+      if (row.link_key === "apple_founder20") {
+        counts.appleFounder20Clicks += 1;
       }
 
       recipientClickCounts.set(row.email_log_id, counts);
@@ -167,6 +174,10 @@ export async function GET(
     if (row.link_key === "google_play") {
       analytics.googlePlayClicks += 1;
     }
+
+    if (row.link_key === "apple_founder20") {
+      analytics.appleFounder20Clicks += 1;
+    }
   }
 
   const campaign = draft as CampaignDraft;
@@ -174,6 +185,7 @@ export async function GET(
     const clickCounts = recipientClickCounts.get(row.id) || {
       appStoreClicks: 0,
       googlePlayClicks: 0,
+      appleFounder20Clicks: 0,
     };
     const openCount = row.open_count || 0;
     const clickCount = row.click_count || 0;
@@ -191,6 +203,7 @@ export async function GET(
       clickCount,
       appStoreClicks: clickCounts.appStoreClicks,
       googlePlayClicks: clickCounts.googlePlayClicks,
+      appleFounder20Clicks: clickCounts.appleFounder20Clicks,
     };
   });
 

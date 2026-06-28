@@ -10,6 +10,7 @@ type QueueRequestBody = {
 type NewsletterDraft = {
   id: string;
   subject: string | null;
+  preview_text: string | null;
   body: string | null;
   target_audience: unknown;
   campaign_type: string | null;
@@ -159,7 +160,7 @@ export async function POST(request: Request) {
   const adminSupabase = createClient(admin.supabaseUrl, admin.serviceRoleKey);
   const { data: draft, error: draftError } = await adminSupabase
     .from("marketing_email_draft")
-    .select("id,subject,body,target_audience,campaign_type,status")
+    .select("id,subject,preview_text,body,target_audience,campaign_type,status")
     .eq("id", draftId)
     .maybeSingle();
 
@@ -183,6 +184,7 @@ export async function POST(request: Request) {
   }
 
   const subject = newsletterDraft.subject?.trim() || "";
+  const previewText = newsletterDraft.preview_text?.trim() || "";
   const body = newsletterDraft.body?.trim() || "";
 
   if (!subject || !body) {
@@ -229,7 +231,7 @@ export async function POST(request: Request) {
       draftId: newsletterDraft.id,
       campaignType,
       targetAudience,
-      previewText: "",
+      previewText,
       body,
     },
     status: "pending",
