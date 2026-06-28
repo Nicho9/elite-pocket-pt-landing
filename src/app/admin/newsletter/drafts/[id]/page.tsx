@@ -163,6 +163,9 @@ const fontSizeOptions = [
   ["Large", "font-size:20px;line-height:1.55;font-weight:700;"],
   ["Feature / Hero", "font-size:26px;line-height:1.25;font-weight:800;"],
 ] as const;
+const defaultFontSizePx = 16;
+const minFontSizePx = 12;
+const maxFontSizePx = 34;
 const analyticsCards: Array<[string, keyof CampaignAnalytics]> = [
   ["Total queued", "total"],
   ["Pending", "pending"],
@@ -628,6 +631,70 @@ export default function NewsletterDraftDetailPage() {
     nextRange.selectNodeContents(span);
     selection.addRange(nextRange);
     syncEditorBody();
+  }
+
+  function getSelectedFontSizePx(selection: Selection) {
+    const editor = editorRef.current;
+
+    if (!editor || selection.rangeCount === 0) {
+      return defaultFontSizePx;
+    }
+
+    const range = selection.getRangeAt(0);
+    const startElement =
+      range.startContainer.nodeType === Node.ELEMENT_NODE
+        ? range.startContainer
+        : range.startContainer.parentElement;
+    const styledElement =
+      startElement instanceof Element
+        ? startElement.closest<HTMLElement>('[style*="font-size"]')
+        : null;
+    const selectedStyledElement =
+      range.commonAncestorContainer instanceof Element
+        ? range.commonAncestorContainer.querySelector<HTMLElement>('[style*="font-size"]')
+        : null;
+    const fontSize = styledElement?.style.fontSize || selectedStyledElement?.style.fontSize || "";
+    const parsedSize = Number.parseFloat(fontSize);
+
+    if (!Number.isFinite(parsedSize)) {
+      return defaultFontSizePx;
+    }
+
+    return parsedSize;
+  }
+
+  function getLineHeightForFontSize(fontSizePx: number) {
+    if (fontSizePx <= 16) {
+      return "1.7";
+    }
+
+    if (fontSizePx <= 22) {
+      return "1.55";
+    }
+
+    return "1.3";
+  }
+
+  function buildAdjustedFontSizeStyle(fontSizePx: number) {
+    const lineHeight = getLineHeightForFontSize(fontSizePx);
+    const fontWeight =
+      fontSizePx >= 24 ? "font-weight:800;" : fontSizePx >= 20 ? "font-weight:700;" : "";
+
+    return `font-size:${fontSizePx}px;line-height:${lineHeight};${fontWeight}`;
+  }
+
+  function adjustSelectedFontSize(deltaPx: number) {
+    const selection = window.getSelection();
+
+    if (!selection || selection.rangeCount === 0 || selection.isCollapsed || !isEditorSelection(selection)) {
+      editorRef.current?.focus();
+      return;
+    }
+
+    const currentSizePx = getSelectedFontSizePx(selection);
+    const nextSizePx = Math.min(maxFontSizePx, Math.max(minFontSizePx, currentSizePx + deltaPx));
+
+    applyFontSizeStyle(buildAdjustedFontSizeStyle(nextSizePx));
   }
 
   function createLink() {
@@ -1206,6 +1273,24 @@ export default function NewsletterDraftDetailPage() {
                         {label}
                       </button>
                     ))}
+                    <button
+                      type="button"
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => adjustSelectedFontSize(2)}
+                      disabled={isLockedCampaign}
+                      className="h-9 rounded-xl border border-[#E5E7EB] px-3 text-sm font-bold text-[#374151] transition hover:border-[#1157D8]/40 hover:text-[#1157D8] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      A↑ Increase size
+                    </button>
+                    <button
+                      type="button"
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => adjustSelectedFontSize(-2)}
+                      disabled={isLockedCampaign}
+                      className="h-9 rounded-xl border border-[#E5E7EB] px-3 text-sm font-bold text-[#374151] transition hover:border-[#1157D8]/40 hover:text-[#1157D8] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      A↓ Decrease size
+                    </button>
                     <button
                       type="button"
                       onClick={() => runEditorCommand("insertUnorderedList")}
