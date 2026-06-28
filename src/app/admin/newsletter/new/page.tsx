@@ -2,8 +2,14 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createBrowserSupabaseClient } from "../../../../lib/supabaseClient";
+import {
+  buildResponsiveImageHtml,
+  buildVideoLinkHtml,
+  normalizeNewsletterBodyHtml,
+  sanitizeNewsletterHtml,
+} from "../../../../lib/newsletterHtml";
 
 type CampaignType = "newsletter" | "launch" | "promotion" | "update";
 type Audience =
@@ -37,15 +43,7 @@ const audienceOptions: Array<[Audience, string]> = [
   ["unclear_app_users", "Unclear app users"],
 ];
 
-const exampleBody = `Hi {{first_name}},
-
-Elite Pocket PT is getting closer to launch, and I wanted to give you a practical update before early access opens.
-
-This week we are focusing on the training system: structured workouts, progress tracking, mobility, nutrition, and Coach Mike feedback in one place.
-
-More details are coming soon.
-
-Coach Mike`;
+const defaultBody = "Elite Pocket PT is the full coaching system in your pocket.";
 
 function titleCase(value: string) {
   return value
@@ -87,7 +85,7 @@ export default function NewNewsletterCampaignPage() {
   const [previewText, setPreviewText] = useState("");
   const [campaignType, setCampaignType] = useState<CampaignType>("newsletter");
   const [audience, setAudience] = useState<Audience>("all_newsletter_contacts");
-  const [body, setBody] = useState(exampleBody);
+  const [body, setBody] = useState(defaultBody);
   const [testEmail, setTestEmail] = useState("");
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [saveSuccessMessage, setSaveSuccessMessage] = useState("");
@@ -98,6 +96,7 @@ export default function NewNewsletterCampaignPage() {
   const [recipientCounts, setRecipientCounts] = useState<RecipientCounts | null>(null);
   const [isLoadingEstimate, setIsLoadingEstimate] = useState(false);
   const [estimateErrorMessage, setEstimateErrorMessage] = useState("");
+  const editorRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -186,6 +185,101 @@ export default function NewNewsletterCampaignPage() {
   }, [router, supabase]);
 
   const estimatedRecipients = getRecipientEstimate(recipientCounts, audience);
+  const sanitizedPreviewBody = useMemo(() => normalizeNewsletterBodyHtml(body), [body]);
+
+  function syncEditorBody() {
+    const nextHtml = sanitizeNewsletterHtml(editorRef.current?.innerHTML || "");
+
+    setBody(nextHtml);
+  }
+
+  function runEditorCommand(command: string, value?: string) {
+    editorRef.current?.focus();
+    document.execCommand(command, false, value);
+    syncEditorBody();
+  }
+
+  function applyParagraphFormat(tagName: "p" | "h2" | "h3") {
+    runEditorCommand("formatBlock", tagName);
+  }
+
+  function createLink() {
+    const href = window.prompt("Enter link URL");
+
+    if (!href?.trim()) {
+      return;
+    }
+
+    const trimmedHref = href.trim();
+
+    if (!/^(https?:|mailto:)/i.test(trimmedHref)) {
+      window.alert("Links must start with http://, https://, or mailto:");
+      return;
+    }
+
+    runEditorCommand("createLink", trimmedHref);
+  }
+
+  function insertHtmlAtSelection(html: string) {
+    editorRef.current?.focus();
+    document.execCommand("insertHTML", false, html);
+    syncEditorBody();
+  }
+
+  function insertImage() {
+    const imageUrl = window.prompt("Image URL");
+
+    if (!imageUrl?.trim()) {
+      return;
+    }
+
+    if (!/^https?:\/\//i.test(imageUrl.trim())) {
+      window.alert("Image URLs must start with http:// or https://");
+      return;
+    }
+
+    const altText = window.prompt("Alt text for the image", "") || "";
+
+    insertHtmlAtSelection(buildResponsiveImageHtml(imageUrl.trim(), altText.trim()));
+  }
+
+  function insertVideoLink() {
+    const videoUrl = window.prompt("Video URL");
+
+    if (!videoUrl?.trim()) {
+      return;
+    }
+
+    if (!/^https?:\/\//i.test(videoUrl.trim())) {
+      window.alert("Video URLs must start with http:// or https://");
+      return;
+    }
+
+    const thumbnailUrl = window.prompt("Thumbnail image URL");
+
+    if (!thumbnailUrl?.trim()) {
+      return;
+    }
+
+    if (!/^https?:\/\//i.test(thumbnailUrl.trim())) {
+      window.alert("Thumbnail URLs must start with http:// or https://");
+      return;
+    }
+
+    const title = window.prompt("Video title", "Watch the video") || "";
+
+    insertHtmlAtSelection(buildVideoLinkHtml(videoUrl.trim(), thumbnailUrl.trim(), title.trim()));
+  }
+
+  useEffect(() => {
+    if (!editorRef.current || document.activeElement === editorRef.current) {
+      return;
+    }
+
+    if (editorRef.current.innerHTML !== sanitizedPreviewBody) {
+      editorRef.current.innerHTML = sanitizedPreviewBody;
+    }
+  }, [sanitizedPreviewBody]);
 
   async function handleSaveDraft() {
     setIsSavingDraft(true);
@@ -402,17 +496,89 @@ export default function NewNewsletterCampaignPage() {
                   </label>
                 </div>
 
-                <label className="grid gap-2">
-                  <span className="text-xs font-bold uppercase tracking-[0.16em] text-[#6B7280]">
-                    Rich text email body
-                  </span>
-                  <textarea
-                    value={body}
-                    onChange={(event) => setBody(event.target.value)}
-                    rows={14}
-                    className="min-h-80 rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] px-4 py-4 text-sm font-medium leading-6 text-[#0B1220] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#1157D8] focus:bg-white"
+                <section className="grid gap-3">
+                  <div>
+                    <span className="text-xs font-bold uppercase tracking-[0.16em] text-[#6B7280]">
+                      Rich email body
+                    </span>
+                    <p className="mt-1 text-xs font-semibold leading-5 text-[#6B7280]">
+                      Select text, then apply formatting. Images and video thumbnails are inserted as safe email HTML.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 rounded-2xl border border-[#E5E7EB] bg-white p-2">
+                    <button
+                      type="button"
+                      onClick={() => runEditorCommand("bold")}
+                      className="h-9 rounded-xl border border-[#E5E7EB] px-3 text-sm font-bold text-[#374151] transition hover:border-[#1157D8]/40 hover:text-[#1157D8]"
+                    >
+                      Bold
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyParagraphFormat("h2")}
+                      className="h-9 rounded-xl border border-[#E5E7EB] px-3 text-sm font-bold text-[#374151] transition hover:border-[#1157D8]/40 hover:text-[#1157D8]"
+                    >
+                      Heading
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyParagraphFormat("p")}
+                      className="h-9 rounded-xl border border-[#E5E7EB] px-3 text-sm font-bold text-[#374151] transition hover:border-[#1157D8]/40 hover:text-[#1157D8]"
+                    >
+                      Paragraph
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => runEditorCommand("insertUnorderedList")}
+                      className="h-9 rounded-xl border border-[#E5E7EB] px-3 text-sm font-bold text-[#374151] transition hover:border-[#1157D8]/40 hover:text-[#1157D8]"
+                    >
+                      Bullet list
+                    </button>
+                    <button
+                      type="button"
+                      onClick={createLink}
+                      className="h-9 rounded-xl border border-[#E5E7EB] px-3 text-sm font-bold text-[#374151] transition hover:border-[#1157D8]/40 hover:text-[#1157D8]"
+                    >
+                      Link
+                    </button>
+                    <button
+                      type="button"
+                      onClick={insertImage}
+                      className="h-9 rounded-xl border border-[#E5E7EB] px-3 text-sm font-bold text-[#374151] transition hover:border-[#1157D8]/40 hover:text-[#1157D8]"
+                    >
+                      Insert image
+                    </button>
+                    <button
+                      type="button"
+                      onClick={insertVideoLink}
+                      className="h-9 rounded-xl border border-[#E5E7EB] px-3 text-sm font-bold text-[#374151] transition hover:border-[#1157D8]/40 hover:text-[#1157D8]"
+                    >
+                      Insert video link
+                    </button>
+                  </div>
+
+                  <div
+                    ref={editorRef}
+                    contentEditable
+                    suppressContentEditableWarning
+                    onInput={syncEditorBody}
+                    onBlur={syncEditorBody}
+                    className="newsletter-editor min-h-80 rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] px-4 py-4 text-sm font-medium leading-7 text-[#0B1220] outline-none transition empty:before:text-[#9CA3AF] focus:border-[#1157D8] focus:bg-white"
                   />
-                </label>
+                </section>
+
+                <section className="rounded-[1.5rem] border border-[#E5E7EB] bg-white p-5">
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#1157D8]">
+                    Email preview
+                  </p>
+                  <div
+                    className="newsletter-preview mt-4 rounded-2xl border border-[#E5E7EB] bg-[#F8FAFC] p-5 text-sm leading-7 text-[#111827]"
+                    dangerouslySetInnerHTML={{
+                      __html: sanitizedPreviewBody || "<p>Your formatted newsletter preview will appear here.</p>",
+                    }}
+                  />
+                </section>
 
                 <label className="grid gap-2">
                   <span className="text-xs font-bold uppercase tracking-[0.16em] text-[#6B7280]">
