@@ -42,6 +42,12 @@ const audienceOptions: Array<[Audience, string]> = [
   ["active_members", "Active members"],
   ["unclear_app_users", "Unclear app users"],
 ];
+const fontSizeOptions = [
+  ["Small", "font-size:14px;line-height:1.6;"],
+  ["Normal", "font-size:16px;line-height:1.7;"],
+  ["Large", "font-size:20px;line-height:1.55;font-weight:700;"],
+  ["Feature / Hero", "font-size:26px;line-height:1.25;font-weight:800;"],
+] as const;
 
 const defaultBody = "Elite Pocket PT is the full coaching system in your pocket.";
 
@@ -201,6 +207,37 @@ export default function NewNewsletterCampaignPage() {
 
   function applyParagraphFormat(tagName: "p" | "h2" | "h3") {
     runEditorCommand("formatBlock", tagName);
+  }
+
+  function isEditorSelection(selection: Selection) {
+    const editor = editorRef.current;
+
+    if (!editor || !selection.anchorNode || !selection.focusNode) {
+      return false;
+    }
+
+    return editor.contains(selection.anchorNode) && editor.contains(selection.focusNode);
+  }
+
+  function applyFontSizeStyle(style: string) {
+    const selection = window.getSelection();
+
+    if (!selection || selection.rangeCount === 0 || selection.isCollapsed || !isEditorSelection(selection)) {
+      editorRef.current?.focus();
+      return;
+    }
+
+    const range = selection.getRangeAt(0);
+    const span = document.createElement("span");
+    span.setAttribute("style", style);
+    span.appendChild(range.extractContents());
+    range.insertNode(span);
+
+    selection.removeAllRanges();
+    const nextRange = document.createRange();
+    nextRange.selectNodeContents(span);
+    selection.addRange(nextRange);
+    syncEditorBody();
   }
 
   function createLink() {
@@ -528,6 +565,17 @@ export default function NewNewsletterCampaignPage() {
                     >
                       Paragraph
                     </button>
+                    {fontSizeOptions.map(([label, style]) => (
+                      <button
+                        key={label}
+                        type="button"
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => applyFontSizeStyle(style)}
+                        className="h-9 rounded-xl border border-[#E5E7EB] px-3 text-sm font-bold text-[#374151] transition hover:border-[#1157D8]/40 hover:text-[#1157D8]"
+                      >
+                        {label}
+                      </button>
+                    ))}
                     <button
                       type="button"
                       onClick={() => runEditorCommand("insertUnorderedList")}

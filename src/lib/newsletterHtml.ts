@@ -10,6 +10,7 @@ const allowedTags = new Set([
   "ul",
   "ol",
   "li",
+  "span",
   "a",
   "img",
 ]);
@@ -21,6 +22,7 @@ const allowedAttributes: Record<string, Set<string>> = {
   ul: new Set(["style"]),
   ol: new Set(["style"]),
   li: new Set(["style"]),
+  span: new Set(["style"]),
   a: new Set(["href", "target", "rel", "style"]),
   img: new Set(["src", "alt", "width", "height", "style"]),
 };
@@ -69,21 +71,25 @@ function isSafeUrl(value: string) {
   return trimmed.startsWith("/");
 }
 
-function sanitizeStyle(value: string) {
-  const allowedProperties = new Set([
-    "max-width",
-    "width",
-    "height",
-    "border-radius",
-    "display",
-    "margin",
-    "padding",
-    "color",
-    "font-size",
-    "font-weight",
-    "line-height",
-    "text-decoration",
-  ]);
+const allowedStyleProperties = new Set([
+  "max-width",
+  "width",
+  "height",
+  "border-radius",
+  "display",
+  "margin",
+  "padding",
+  "color",
+  "font-size",
+  "font-weight",
+  "line-height",
+  "text-decoration",
+]);
+
+const spanStyleProperties = new Set(["font-size", "line-height", "font-weight", "color"]);
+
+function sanitizeStyle(value: string, tagName?: string) {
+  const safeProperties = tagName === "span" ? spanStyleProperties : allowedStyleProperties;
   const safeDeclarations: string[] = [];
 
   for (const declaration of value.split(";")) {
@@ -91,7 +97,7 @@ function sanitizeStyle(value: string) {
     const property = rawProperty?.trim().toLowerCase();
     const propertyValue = rawValueParts.join(":").trim();
 
-    if (!property || !propertyValue || !allowedProperties.has(property)) {
+    if (!property || !propertyValue || !safeProperties.has(property)) {
       continue;
     }
 
@@ -132,7 +138,7 @@ function sanitizeAttributes(tagName: string, rawAttributes: string) {
     }
 
     if (attributeName === "style") {
-      const safeStyle = sanitizeStyle(attributeValue);
+      const safeStyle = sanitizeStyle(attributeValue, tagName);
 
       if (safeStyle) {
         attributes.push(`style="${escapeHtml(safeStyle)}"`);
