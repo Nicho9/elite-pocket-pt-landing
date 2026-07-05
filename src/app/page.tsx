@@ -532,6 +532,15 @@ export default function Home() {
               </span>
             </Link>
           </div>
+
+          <div className="mt-6 flex justify-center">
+            <a
+              href="#newsletter"
+              className="inline-flex items-center justify-center rounded-full border border-[#6EA8FF]/60 bg-[#1157D8]/18 px-6 py-2.5 text-sm font-extrabold text-white shadow-[0_14px_34px_rgba(17,87,216,0.28)] backdrop-blur-md transition hover:-translate-y-0.5 hover:border-[#9BC4FF]/80 hover:bg-[#1157D8]/28 hover:shadow-[0_18px_44px_rgba(17,87,216,0.36)]"
+            >
+              Sign up to newsletter
+            </a>
+          </div>
         </div>
       </section>
       <section id="how-it-works" className="scroll-mt-24 bg-[linear-gradient(180deg,#F5F7FB_0%,#EEF5FF_52%,#F5F7FB_100%)] px-5 py-20">
@@ -997,7 +1006,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="bg-[#F5F7FB] px-5 pb-20">
+      <section id="newsletter" className="scroll-mt-24 bg-[#F5F7FB] px-5 pb-20">
         <div className="mx-auto max-w-5xl rounded-[2rem] border border-[#E5E7EB] bg-white p-6 shadow-[0_18px_44px_rgba(15,23,42,0.08)] sm:p-8">
           <div className="grid gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(360px,1fr)] lg:items-center">
             <div>
