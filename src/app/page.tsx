@@ -417,7 +417,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="bg-[#080A0D] px-4 pb-5 pt-10 sm:px-5 sm:pb-6 sm:pt-12 lg:pb-7 lg:pt-14">
+      <section className="bg-[#080A0D] px-4 py-7 sm:px-5 sm:py-8 lg:py-9">
         <div className="mx-auto flex max-w-7xl justify-center">
           <a
             href="#newsletter"
