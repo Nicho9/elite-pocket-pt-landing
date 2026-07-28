@@ -352,7 +352,7 @@ export default function Home() {
       </div>
 
       <main className="min-h-screen bg-[#F5F7FB] text-[#111827]">
-      <section className="bg-[#080A0D] px-5 pb-14 pt-24 text-white sm:pb-16">
+      <section className="bg-[#080A0D] px-5 pb-4 pt-24 text-white">
         <div className="mx-auto w-full max-w-7xl">
           <div className="relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-[#111418] shadow-[0_28px_90px_rgba(0,0,0,0.42)]">
             <video
@@ -417,7 +417,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="bg-[#080A0D] px-4 py-4 sm:px-5">
+      <section className="bg-[#080A0D] px-4 sm:px-5">
         <div className="mx-auto flex max-w-7xl justify-center">
           <a
             href="#newsletter"
@@ -428,9 +428,9 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="bg-[#080A0D] px-5 py-14 text-white sm:py-16">
+      <section className="bg-[#080A0D] px-5 pb-14 pt-4 text-white sm:pb-16">
         <div className="mx-auto w-full max-w-7xl">
-          <div id="get-started" className="mx-auto mt-7 grid w-full max-w-7xl scroll-mt-24 gap-4 sm:mt-8 lg:grid-cols-4">
+          <div id="get-started" className="mx-auto grid w-full max-w-7xl scroll-mt-24 gap-4 lg:grid-cols-4">
             <a
               href={iosAppStoreHref}
               className="group relative flex min-h-[17rem] overflow-hidden rounded-[2rem] border border-[#6EA8FF]/20 bg-[linear-gradient(145deg,#171E28_0%,#0D1218_58%,#090B0F_100%)] p-6 text-left shadow-[0_28px_80px_rgba(0,0,0,0.34)] ring-1 ring-[#1157D8]/10 transition duration-300 hover:-translate-y-1.5 hover:border-[#6EA8FF]/45 hover:shadow-[0_34px_90px_rgba(17,87,216,0.22)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#1157D8]/35"
