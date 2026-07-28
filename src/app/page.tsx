@@ -417,11 +417,11 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="bg-[#F5F7FB] px-4 pb-4 pt-10 sm:px-5 sm:pt-12 lg:pt-14">
+      <section className="bg-[#080A0D] px-4 pb-5 pt-10 sm:px-5 sm:pb-6 sm:pt-12 lg:pb-7 lg:pt-14">
         <div className="mx-auto flex max-w-7xl justify-center">
           <a
             href="#newsletter"
-            className="inline-flex items-center justify-center rounded-full border border-[#1157D8]/20 bg-[#1157D8] px-6 py-2.5 text-sm font-extrabold text-white shadow-[0_14px_34px_rgba(17,87,216,0.28)] transition hover:-translate-y-0.5 hover:bg-[#0A39A8] hover:shadow-[0_18px_44px_rgba(17,87,216,0.36)]"
+            className="inline-flex min-h-12 items-center justify-center rounded-full border border-[#6EA8FF]/30 bg-[#1157D8] px-8 py-3 text-base font-extrabold text-white shadow-[0_18px_48px_rgba(17,87,216,0.34)] transition hover:-translate-y-0.5 hover:bg-[#0A39A8] hover:shadow-[0_24px_60px_rgba(17,87,216,0.44)]"
           >
             Sign up to newsletter
           </a>
