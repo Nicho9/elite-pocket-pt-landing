@@ -414,7 +414,22 @@ export default function Home() {
               Your complete coaching system, built from science — not generic prompts.
             </p>
           </div>
+        </div>
+      </section>
 
+      <section className="bg-[#F5F7FB] px-4 pb-4 pt-10 sm:px-5 sm:pt-12 lg:pt-14">
+        <div className="mx-auto flex max-w-7xl justify-center">
+          <a
+            href="#newsletter"
+            className="inline-flex items-center justify-center rounded-full border border-[#1157D8]/20 bg-[#1157D8] px-6 py-2.5 text-sm font-extrabold text-white shadow-[0_14px_34px_rgba(17,87,216,0.28)] transition hover:-translate-y-0.5 hover:bg-[#0A39A8] hover:shadow-[0_18px_44px_rgba(17,87,216,0.36)]"
+          >
+            Sign up to newsletter
+          </a>
+        </div>
+      </section>
+
+      <section className="bg-[#080A0D] px-5 py-14 text-white sm:py-16">
+        <div className="mx-auto w-full max-w-7xl">
           <div id="get-started" className="mx-auto mt-7 grid w-full max-w-7xl scroll-mt-24 gap-4 sm:mt-8 lg:grid-cols-4">
             <a
               href={iosAppStoreHref}
@@ -531,15 +546,6 @@ export default function Home() {
                 </span>
               </span>
             </Link>
-          </div>
-
-          <div className="mt-6 flex justify-center">
-            <a
-              href="#newsletter"
-              className="inline-flex items-center justify-center rounded-full border border-[#6EA8FF]/60 bg-[#1157D8]/18 px-6 py-2.5 text-sm font-extrabold text-white shadow-[0_14px_34px_rgba(17,87,216,0.28)] backdrop-blur-md transition hover:-translate-y-0.5 hover:border-[#9BC4FF]/80 hover:bg-[#1157D8]/28 hover:shadow-[0_18px_44px_rgba(17,87,216,0.36)]"
-            >
-              Sign up to newsletter
-            </a>
           </div>
         </div>
       </section>
