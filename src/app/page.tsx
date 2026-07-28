@@ -543,6 +543,74 @@ export default function Home() {
           </div>
         </div>
       </section>
+      <section id="newsletter" className="scroll-mt-24 bg-[#F5F7FB] px-4 py-12 sm:px-5 sm:py-16 lg:py-20">
+        <div className="mx-auto max-w-5xl rounded-[2rem] border border-[#E5E7EB] bg-white p-5 shadow-[0_18px_44px_rgba(15,23,42,0.08)] sm:p-8">
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1fr)] lg:items-center">
+            <div>
+              <p className="text-sm font-bold uppercase tracking-[0.22em] text-[#1157D8]">
+                Newsletter
+              </p>
+              <h2 className="mt-3 text-2xl font-bold tracking-tight text-[#0B1220] sm:text-3xl">
+                Join the Elite Pocket PT newsletter
+              </h2>
+              <p className="mt-3 text-base font-medium leading-7 text-[#4B5563]">
+                Get app updates, coaching education, launch offers, and performance nutrition insights from Coach Mike.
+              </p>
+            </div>
+
+            <form onSubmit={handleNewsletterSubmit} className="grid gap-3">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="grid gap-2">
+                  <span className="text-xs font-bold uppercase tracking-[0.16em] text-[#6B7280]">
+                    Full name
+                  </span>
+                  <input
+                    value={newsletterName}
+                    onChange={(event) => setNewsletterName(event.target.value)}
+                    disabled={newsletterStatus === "loading"}
+                    placeholder="Your name"
+                    className="h-12 rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] px-4 text-sm font-semibold text-[#0B1220] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#1157D8] focus:bg-white disabled:cursor-not-allowed disabled:opacity-70"
+                  />
+                </label>
+                <label className="grid gap-2">
+                  <span className="text-xs font-bold uppercase tracking-[0.16em] text-[#6B7280]">
+                    Email
+                  </span>
+                  <input
+                    type="email"
+                    value={newsletterEmail}
+                    onChange={(event) => setNewsletterEmail(event.target.value)}
+                    disabled={newsletterStatus === "loading"}
+                    placeholder="you@example.com"
+                    className="h-12 rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] px-4 text-sm font-semibold text-[#0B1220] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#1157D8] focus:bg-white disabled:cursor-not-allowed disabled:opacity-70"
+                  />
+                </label>
+              </div>
+              <button
+                type="submit"
+                disabled={newsletterStatus === "loading"}
+                className="h-12 w-full rounded-xl bg-[#1157D8] px-5 text-sm font-bold text-white shadow-[0_14px_32px_rgba(17,87,216,0.22)] transition hover:bg-[#0A39A8] disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {newsletterStatus === "loading" ? "Joining..." : "Join newsletter"}
+              </button>
+              <p className="text-sm font-semibold leading-6 text-[#6B7280]">
+                No spam. Just useful coaching, app updates, and offers.
+              </p>
+              {newsletterMessage && (
+                <p
+                  className={`rounded-xl px-4 py-3 text-sm font-semibold ${
+                    newsletterStatus === "error"
+                      ? "border border-red-100 bg-red-50 text-red-600"
+                      : "border border-emerald-100 bg-emerald-50 text-emerald-700"
+                  }`}
+                >
+                  {newsletterMessage}
+                </p>
+              )}
+            </form>
+          </div>
+        </div>
+      </section>
       <section id="how-it-works" className="scroll-mt-24 bg-[linear-gradient(180deg,#F5F7FB_0%,#EEF5FF_52%,#F5F7FB_100%)] px-5 py-20">
         <div className="mx-auto max-w-7xl">
           <div className="mx-auto max-w-4xl text-center">
@@ -1006,74 +1074,6 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="newsletter" className="scroll-mt-24 bg-[#F5F7FB] px-5 pb-20">
-        <div className="mx-auto max-w-5xl rounded-[2rem] border border-[#E5E7EB] bg-white p-6 shadow-[0_18px_44px_rgba(15,23,42,0.08)] sm:p-8">
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(360px,1fr)] lg:items-center">
-            <div>
-              <p className="text-sm font-bold uppercase tracking-[0.22em] text-[#1157D8]">
-                Newsletter
-              </p>
-              <h2 className="mt-3 text-2xl font-bold tracking-tight text-[#0B1220] sm:text-3xl">
-                Join the Elite Pocket PT newsletter
-              </h2>
-              <p className="mt-3 text-base font-medium leading-7 text-[#4B5563]">
-                Get app updates, coaching education, launch offers, and performance nutrition insights from Coach Mike.
-              </p>
-              <p className="mt-4 text-sm font-semibold text-[#6B7280]">
-                No spam. Just useful coaching, app updates, and offers.
-              </p>
-            </div>
-
-            <form onSubmit={handleNewsletterSubmit} className="grid gap-3">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <label className="grid gap-2">
-                  <span className="text-xs font-bold uppercase tracking-[0.16em] text-[#6B7280]">
-                    Full name
-                  </span>
-                  <input
-                    value={newsletterName}
-                    onChange={(event) => setNewsletterName(event.target.value)}
-                    disabled={newsletterStatus === "loading"}
-                    placeholder="Your name"
-                    className="h-12 rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] px-4 text-sm font-semibold text-[#0B1220] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#1157D8] focus:bg-white disabled:cursor-not-allowed disabled:opacity-70"
-                  />
-                </label>
-                <label className="grid gap-2">
-                  <span className="text-xs font-bold uppercase tracking-[0.16em] text-[#6B7280]">
-                    Email
-                  </span>
-                  <input
-                    type="email"
-                    value={newsletterEmail}
-                    onChange={(event) => setNewsletterEmail(event.target.value)}
-                    disabled={newsletterStatus === "loading"}
-                    placeholder="you@example.com"
-                    className="h-12 rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] px-4 text-sm font-semibold text-[#0B1220] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#1157D8] focus:bg-white disabled:cursor-not-allowed disabled:opacity-70"
-                  />
-                </label>
-              </div>
-              <button
-                type="submit"
-                disabled={newsletterStatus === "loading"}
-                className="h-12 rounded-xl bg-[#1157D8] px-5 text-sm font-bold text-white shadow-[0_14px_32px_rgba(17,87,216,0.22)] transition hover:bg-[#0A39A8] disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                {newsletterStatus === "loading" ? "Joining..." : "Join newsletter"}
-              </button>
-              {newsletterMessage && (
-                <p
-                  className={`rounded-xl px-4 py-3 text-sm font-semibold ${
-                    newsletterStatus === "error"
-                      ? "border border-red-100 bg-red-50 text-red-600"
-                      : "border border-emerald-100 bg-emerald-50 text-emerald-700"
-                  }`}
-                >
-                  {newsletterMessage}
-                </p>
-              )}
-            </form>
-          </div>
-        </div>
-      </section>
       <footer className="border-t border-[#E5E7EB] bg-[#F5F7FB] px-5 py-8">
         <div className="mx-auto flex max-w-6xl flex-wrap justify-center gap-x-6 gap-y-3 text-sm font-semibold text-[#4B5563]">
           <Link href="/privacy" className="transition hover:text-[#1157D8]">
