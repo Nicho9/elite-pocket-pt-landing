@@ -4,7 +4,7 @@ import Image from "next/image";
 const includedItems = [
   {
     title: "8 weeks of Elite Pocket PT app access",
-    body: "App access starts on the Sunday before the programme begins and stops automatically after 8 weeks.",
+    body: "App access runs from Sunday 6 September 2026 to Sunday 1 November 2026.",
   },
   {
     title: "App-based training",
@@ -24,7 +24,7 @@ const includedItems = [
   },
   {
     title: "Private WhatsApp cohort group",
-    body: "Clients are manually added to the private WhatsApp cohort group 5 days before onboarding.",
+    body: "Clients are manually added to the private WhatsApp cohort group on Tuesday 1 September 2026.",
   },
   {
     title: "Educational webinar access",
@@ -38,24 +38,28 @@ const includedItems = [
 
 const keyDates = [
   {
-    label: "WhatsApp group",
-    value: "Added 5 days before onboarding",
+    label: "Sign-ups open:",
+    value: "Friday 28 August 2026",
   },
   {
-    label: "Onboarding call",
-    value: "Sunday 12 July 2026",
+    label: "WhatsApp group:",
+    value: "added Tuesday 1 September 2026",
   },
   {
-    label: "Next transformation starts",
-    value: "Monday 13 July 2026, pending team readiness",
-  },
-  {
-    label: "Programme ends",
+    label: "Onboarding call:",
     value: "Sunday 6 September 2026",
   },
   {
-    label: "App access",
-    value: "Starts the Sunday before the programme and stops automatically after 8 weeks",
+    label: "Next transformation starts:",
+    value: "Monday 7 September 2026",
+  },
+  {
+    label: "Programme ends:",
+    value: "Sunday 1 November 2026",
+  },
+  {
+    label: "App access:",
+    value: "Sunday 6 September 2026 to Sunday 1 November 2026",
   },
 ];
 
@@ -126,7 +130,7 @@ export default function EliteEightWeekTransformationPage() {
                     Next transformation starts
                   </p>
                   <p className="mt-2 text-2xl font-bold leading-tight text-white">
-                    Monday 13 July 2026
+                    Monday 7 September 2026
                   </p>
                 </div>
               </div>

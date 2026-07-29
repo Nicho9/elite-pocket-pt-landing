@@ -538,7 +538,7 @@ export default function Home() {
                     <span className="block">Private WhatsApp cohort group</span>
                     <span className="block">Educational webinar access</span>
                     <span className="block">Training, nutrition, progress tracking, and accountability</span>
-                    <span className="block">Starts Monday 13 July 2026, pending team readiness</span>
+                    <span className="block">Next transformation starts Monday 7 September 2026</span>
                   </span>
                 </span>
                 <span className="inline-flex w-fit rounded-full bg-white px-5 py-2.5 text-sm font-bold text-[#1157D8] transition group-hover:bg-[#EAF2FF]">
