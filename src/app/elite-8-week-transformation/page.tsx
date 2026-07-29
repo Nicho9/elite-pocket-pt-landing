@@ -136,12 +136,12 @@ export default function EliteEightWeekTransformationPage() {
               </div>
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <a
-                  href="#checkout-placeholder"
+                <Link
+                  href="/elite-8-week-transformation/signup"
                   className="inline-flex justify-center rounded-full bg-[#1157D8] px-8 py-4 text-base font-bold text-white shadow-[0_16px_40px_rgba(17,87,216,0.28)] transition hover:bg-[#0A39A8]"
                 >
                   Join the programme
-                </a>
+                </Link>
                 <Link
                   href="/"
                   className="inline-flex justify-center rounded-full border border-white/15 bg-white/10 px-8 py-4 text-base font-bold text-white transition hover:bg-white/15"
@@ -387,25 +387,23 @@ export default function EliteEightWeekTransformationPage() {
         </div>
       </section>
 
-      <section id="checkout-placeholder" className="scroll-mt-24 bg-white px-5 py-20">
+      <section className="bg-white px-5 py-20">
         <div className="mx-auto max-w-4xl rounded-[2rem] border border-[#E5E7EB] border-t-[#1157D8]/60 bg-[#FAFBFE] p-8 text-center shadow-[0_24px_70px_rgba(15,23,42,0.09)] sm:p-10">
           <p className="text-sm font-bold uppercase tracking-[0.22em] text-[#1157D8]">
             Join the programme
           </p>
           <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#0B1220] sm:text-4xl">
-            Checkout coming soon
+            Join the Elite 8-week Transformation
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-base font-medium leading-8 text-[#4B5563]">
-            Online checkout for the Elite 8-week Transformation is being prepared.
-            This placeholder does not process payment.
+            Create your account and continue to secure checkout for the £200 one-off programme payment.
           </p>
-          <button
-            type="button"
-            disabled
-            className="mt-8 inline-flex cursor-not-allowed rounded-full bg-[#1157D8]/70 px-8 py-4 text-base font-bold text-white shadow-[0_16px_40px_rgba(17,87,216,0.18)]"
+          <Link
+            href="/elite-8-week-transformation/signup"
+            className="mt-8 inline-flex rounded-full bg-[#1157D8] px-8 py-4 text-base font-bold text-white shadow-[0_16px_40px_rgba(17,87,216,0.28)] transition hover:bg-[#0A39A8]"
           >
-            Checkout coming soon
-          </button>
+            Join the programme
+          </Link>
         </div>
       </section>
     </main>
