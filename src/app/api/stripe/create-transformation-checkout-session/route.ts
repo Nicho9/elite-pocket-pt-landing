@@ -103,6 +103,15 @@ export async function POST(request: Request) {
   const env = getRequiredEnv();
 
   if (!env) {
+    console.error("Transformation checkout service is not configured", {
+      missingEnv: {
+        STRIPE_SECRET_KEY: !process.env.STRIPE_SECRET_KEY,
+        NEXT_PUBLIC_SITE_URL: !process.env.NEXT_PUBLIC_SITE_URL,
+        SB_URL: !process.env.SB_URL,
+        WEBSITE_SIGNUP_SECRET: !process.env.WEBSITE_SIGNUP_SECRET,
+      },
+    });
+
     return jsonResponse(
       { success: false, error: "Transformation checkout service is not configured." },
       500,
@@ -206,7 +215,15 @@ export async function POST(request: Request) {
     }
 
     return jsonResponse({ success: true, url: session.url }, 200);
-  } catch {
+  } catch (error) {
+    const checkoutError = error instanceof Error ? error : null;
+
+    console.error("Transformation checkout failed", {
+      name: checkoutError?.name,
+      message: checkoutError?.message,
+      stack: checkoutError?.stack,
+    });
+
     return jsonResponse(
       { success: false, error: "Could not create checkout session." },
       500,
