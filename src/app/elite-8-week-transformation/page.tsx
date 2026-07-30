@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
+import { useState } from "react";
 
 const includedItems = [
   {
@@ -141,6 +144,24 @@ function ImageBlock({
 }
 
 export default function EliteEightWeekTransformationPage() {
+  const [expandedIncludedItems, setExpandedIncludedItems] = useState<Set<string>>(
+    () => new Set(),
+  );
+
+  function toggleIncludedItem(title: string) {
+    setExpandedIncludedItems((currentItems) => {
+      const nextItems = new Set(currentItems);
+
+      if (nextItems.has(title)) {
+        nextItems.delete(title);
+      } else {
+        nextItems.add(title);
+      }
+
+      return nextItems;
+    });
+  }
+
   return (
     <main className="min-h-screen bg-[#F5F7FB] text-[#111827]">
       <section className="overflow-hidden bg-[#0B1220] px-5 py-6 text-white sm:py-8">
@@ -246,19 +267,50 @@ export default function EliteEightWeekTransformationPage() {
           </div>
 
           <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {includedItems.map((item) => (
-              <div
-                key={item.title}
-                className="rounded-[1.5rem] border border-[#E5E7EB] bg-white p-6 shadow-[0_18px_44px_rgba(15,23,42,0.08)]"
-              >
-                <h3 className="text-lg font-bold leading-7 text-[#0B1220]">{item.title}</h3>
-                <div className="mt-4 space-y-3 text-sm font-semibold leading-6 text-[#4B5563]">
-                  {item.body.map((paragraph) => (
-                    <p key={paragraph}>{paragraph}</p>
-                  ))}
+            {includedItems.map((item) => {
+              const isExpanded = expandedIncludedItems.has(item.title);
+              const contentId = `included-item-${item.title
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, "-")
+                .replace(/(^-|-$)/g, "")}`;
+
+              return (
+                <div
+                  key={item.title}
+                  className="rounded-[1.5rem] border border-[#E5E7EB] bg-white p-6 shadow-[0_18px_44px_rgba(15,23,42,0.08)]"
+                >
+                  <h3 className="text-lg font-bold leading-7 text-[#0B1220]">{item.title}</h3>
+                  <p className="mt-4 text-sm font-semibold leading-6 text-[#4B5563]">
+                    {item.body[0]}
+                  </p>
+
+                  <div
+                    id={contentId}
+                    className={`grid transition-[grid-template-rows] duration-300 ease-out ${
+                      isExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+                    }`}
+                  >
+                    <div className="overflow-hidden">
+                      <div className="mt-3 space-y-3 border-t border-[#E5E7EB] pt-3 text-sm font-semibold leading-6 text-[#4B5563]">
+                        {item.body.slice(1).map((paragraph) => (
+                          <p key={paragraph}>{paragraph}</p>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    aria-expanded={isExpanded}
+                    aria-controls={contentId}
+                    onClick={() => toggleIncludedItem(item.title)}
+                    className="mt-5 inline-flex h-10 items-center justify-center rounded-full border border-[#1157D8]/20 bg-[#1157D8]/5 px-4 text-sm font-bold text-[#1157D8] transition hover:border-[#1157D8]/35 hover:bg-[#1157D8]/10"
+                  >
+                    {isExpanded ? "Show less" : "Read more"}
+                  </button>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <p className="mx-auto mt-10 max-w-4xl text-center text-base font-bold leading-8 text-[#0B1220]">
