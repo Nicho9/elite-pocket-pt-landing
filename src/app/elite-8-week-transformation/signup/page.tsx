@@ -5,9 +5,18 @@ import { FormEvent, useState } from "react";
 
 type CheckoutStatus = "idle" | "loading" | "error";
 
+const referralSources = [
+  "Mike Nicholson",
+  "Elite Pocket PT",
+  "Instagram",
+  "Facebook",
+  "Craig Broomhead",
+] as const;
+
 export default function EliteEightWeekTransformationSignupPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [referralSource, setReferralSource] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [checkoutStatus, setCheckoutStatus] = useState<CheckoutStatus>("idle");
@@ -34,6 +43,12 @@ export default function EliteEightWeekTransformationSignupPage() {
       return;
     }
 
+    if (!referralSource) {
+      setCheckoutStatus("error");
+      setErrorMessage("Please tell us how you heard about the programme.");
+      return;
+    }
+
     if (password.length < 8) {
       setCheckoutStatus("error");
       setErrorMessage("Password must be at least 8 characters.");
@@ -57,6 +72,7 @@ export default function EliteEightWeekTransformationSignupPage() {
         body: JSON.stringify({
           name: trimmedName,
           email: trimmedEmail,
+          referralSource,
           password,
         }),
       });
@@ -154,6 +170,25 @@ export default function EliteEightWeekTransformationSignupPage() {
                     placeholder="you@example.com"
                     className="h-12 rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] px-4 text-sm font-semibold text-[#0B1220] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#1157D8] focus:bg-white disabled:cursor-wait disabled:opacity-70"
                   />
+                </label>
+
+                <label className="grid gap-2">
+                  <span className="text-xs font-bold uppercase tracking-[0.16em] text-[#6B7280]">
+                    How did you hear about us?
+                  </span>
+                  <select
+                    value={referralSource}
+                    onChange={(event) => setReferralSource(event.target.value)}
+                    disabled={checkoutStatus === "loading"}
+                    className="h-12 rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] px-4 text-sm font-semibold text-[#0B1220] outline-none transition focus:border-[#1157D8] focus:bg-white disabled:cursor-wait disabled:opacity-70"
+                  >
+                    <option value="">Select one</option>
+                    {referralSources.map((source) => (
+                      <option key={source} value={source}>
+                        {source}
+                      </option>
+                    ))}
+                  </select>
                 </label>
 
                 <label className="grid gap-2">

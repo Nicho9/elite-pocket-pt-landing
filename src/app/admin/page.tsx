@@ -692,12 +692,20 @@ export default function AdminPage() {
             </p>
           </div>
 
-          <Link
-            href="/admin/newsletter"
-            className="inline-flex h-11 w-fit items-center justify-center rounded-xl bg-[#1157D8] px-5 text-sm font-bold text-white shadow-[0_14px_32px_rgba(17,87,216,0.22)] transition hover:bg-[#0A39A8]"
-          >
-            Newsletter
-          </Link>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Link
+              href="/admin/transformations"
+              className="inline-flex h-11 w-fit items-center justify-center rounded-xl border border-[#E5E7EB] bg-white px-5 text-sm font-bold text-[#374151] shadow-sm transition hover:border-[#1157D8]/40 hover:text-[#1157D8]"
+            >
+              Transformations
+            </Link>
+            <Link
+              href="/admin/newsletter"
+              className="inline-flex h-11 w-fit items-center justify-center rounded-xl bg-[#1157D8] px-5 text-sm font-bold text-white shadow-[0_14px_32px_rgba(17,87,216,0.22)] transition hover:bg-[#0A39A8]"
+            >
+              Newsletter
+            </Link>
+          </div>
         </div>
 
         {errorMessage && (

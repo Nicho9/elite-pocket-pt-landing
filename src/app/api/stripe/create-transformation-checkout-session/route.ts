@@ -1,19 +1,29 @@
 import Stripe from "stripe";
+import { createClient } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
 
 const transformationPriceId = "price_1TyUgzLuPG1NFWds7GW0d8iU";
+const referralSources = [
+  "Mike Nicholson",
+  "Elite Pocket PT",
+  "Instagram",
+  "Facebook",
+  "Craig Broomhead",
+] as const;
 
 type TransformationCheckoutRequestBody = {
   name?: unknown;
   email?: unknown;
   password?: unknown;
+  referralSource?: unknown;
 };
 
 type TransformationCheckoutEnv = {
   stripeSecretKey: string;
   siteUrl: string;
   supabaseUrl: string;
+  supabaseServiceRoleKey: string;
   websiteSignupSecret: string;
 };
 
@@ -37,9 +47,16 @@ function getRequiredEnv(): TransformationCheckoutEnv | null {
   const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
   const supabaseUrl = process.env.SB_URL;
+  const supabaseServiceRoleKey = process.env.SB_SERVICE_ROLE_KEY;
   const websiteSignupSecret = process.env.WEBSITE_SIGNUP_SECRET;
 
-  if (!stripeSecretKey || !siteUrl || !supabaseUrl || !websiteSignupSecret) {
+  if (
+    !stripeSecretKey ||
+    !siteUrl ||
+    !supabaseUrl ||
+    !supabaseServiceRoleKey ||
+    !websiteSignupSecret
+  ) {
     return null;
   }
 
@@ -47,12 +64,17 @@ function getRequiredEnv(): TransformationCheckoutEnv | null {
     stripeSecretKey,
     siteUrl: siteUrl.replace(/\/+$/, ""),
     supabaseUrl: supabaseUrl.replace(/\/+$/, ""),
+    supabaseServiceRoleKey,
     websiteSignupSecret,
   };
 }
 
 function getString(value: unknown) {
   return typeof value === "string" ? value : "";
+}
+
+function isValidReferralSource(value: string): value is (typeof referralSources)[number] {
+  return referralSources.includes(value as (typeof referralSources)[number]);
 }
 
 function getSupabaseError(payload: WebsiteSignupResponse | null) {
@@ -108,6 +130,7 @@ export async function POST(request: Request) {
         STRIPE_SECRET_KEY: !process.env.STRIPE_SECRET_KEY,
         NEXT_PUBLIC_SITE_URL: !process.env.NEXT_PUBLIC_SITE_URL,
         SB_URL: !process.env.SB_URL,
+        SB_SERVICE_ROLE_KEY: !process.env.SB_SERVICE_ROLE_KEY,
         WEBSITE_SIGNUP_SECRET: !process.env.WEBSITE_SIGNUP_SECRET,
       },
     });
@@ -129,6 +152,7 @@ export async function POST(request: Request) {
   const name = getString(body.name).trim();
   const email = getString(body.email).trim().toLowerCase();
   const password = getString(body.password);
+  const referralSource = getString(body.referralSource).trim();
 
   if (!name) {
     return jsonResponse({ success: false, error: "Name is required." }, 400);
@@ -136,6 +160,20 @@ export async function POST(request: Request) {
 
   if (!email) {
     return jsonResponse({ success: false, error: "Email is required." }, 400);
+  }
+
+  if (!referralSource) {
+    return jsonResponse(
+      { success: false, error: "Please tell us how you heard about the programme." },
+      400,
+    );
+  }
+
+  if (!isValidReferralSource(referralSource)) {
+    return jsonResponse(
+      { success: false, error: "Please select a valid referral source." },
+      400,
+    );
   }
 
   if (!password || password.length < 8) {
@@ -177,6 +215,7 @@ export async function POST(request: Request) {
       );
     }
 
+    const adminSupabase = createClient(env.supabaseUrl, env.supabaseServiceRoleKey);
     const userId = getString(signupPayload?.user_id);
 
     if (!userId) {
@@ -186,12 +225,39 @@ export async function POST(request: Request) {
       );
     }
 
+    const { data: transformationSignup, error: transformationSignupError } =
+      await adminSupabase
+        .from("transformation_signups")
+        .insert({
+          user_id: userId,
+          full_name: name,
+          email,
+          referral_source: referralSource,
+          payment_status: "pending",
+        })
+        .select("id")
+        .single();
+
+    if (transformationSignupError || !transformationSignup?.id) {
+      console.error("Transformation signup insert failed", {
+        message: transformationSignupError?.message,
+        code: transformationSignupError?.code,
+      });
+
+      return jsonResponse(
+        { success: false, error: "Could not save transformation signup." },
+        500,
+      );
+    }
+
     const metadata: Stripe.MetadataParam = {
       product: "elite_8_week_transformation",
       programme: "Elite 8-week Transformation",
       name,
       email,
       user_id: userId,
+      transformation_signup_id: transformationSignup.id,
+      referral_source: referralSource,
     };
     const stripe = new Stripe(env.stripeSecretKey);
     const session = await stripe.checkout.sessions.create({
@@ -212,6 +278,24 @@ export async function POST(request: Request) {
         { success: false, error: "Could not create checkout session." },
         502,
       );
+    }
+
+    const paymentIntentId =
+      typeof session.payment_intent === "string" ? session.payment_intent : null;
+    const { error: updateSignupError } = await adminSupabase
+      .from("transformation_signups")
+      .update({
+        stripe_checkout_session_id: session.id,
+        stripe_payment_intent_id: paymentIntentId,
+      })
+      .eq("id", transformationSignup.id);
+
+    if (updateSignupError) {
+      console.error("Transformation signup checkout session update failed", {
+        transformation_signup_id: transformationSignup.id,
+        message: updateSignupError.message,
+        code: updateSignupError.code,
+      });
     }
 
     return jsonResponse({ success: true, url: session.url }, 200);
