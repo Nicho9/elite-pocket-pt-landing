@@ -4,35 +4,84 @@ import Image from "next/image";
 const includedItems = [
   {
     title: "8 weeks of Elite Pocket PT app access",
-    body: "App access runs from Sunday 6 September 2026 to Sunday 1 November 2026.",
+    body: [
+      "App access runs from Sunday 6 September 2026 to Sunday 1 November 2026.",
+      "During this period, you get access to the Elite Pocket PT coaching system, including your training structure, nutrition tools, progress tracking, mobility support and educational webinar access.",
+      "This is the central hub for the transformation. Instead of having training in one place, nutrition in another, progress photos somewhere else and advice scattered through messages, the app gives you one clear system to work from.",
+      "The aim is to remove as much guesswork as possible. You should know what your current focus is, what sessions you need to complete, how your nutrition supports the goal, and what data needs to be tracked across the 8 weeks.",
+      "This matters because most people do not fail from lack of effort. They fail because the plan is unclear, inconsistent, badly tracked, or changed too often. The app gives the programme its structure.",
+    ],
   },
   {
-    title: "App-based training",
-    body: "Structured training delivered through the Elite Pocket PT app for the full programme.",
+    title: "Structured app-based training",
+    body: [
+      "Your training is delivered inside the Elite Pocket PT app so every session has a clear purpose.",
+      "Your plan is built around your goal, ability level, available training days and equipment access. Sessions are structured with exercises, sets, reps, rest periods and progression so you are not left walking into the gym guessing what to do.",
+      "This is not random daily workouts. The training is designed to create repeatable progress across the 8 weeks by giving you a clear structure to follow week after week.",
+      "Depending on your goal, the programme can support fat loss, muscle gain, body recomposition, strength development or general fitness. The key is that your training has direction rather than being a mix of whatever feels hard on the day.",
+      "You will know what you are training, why it is there, and how it fits into the wider 8-week plan.",
+    ],
   },
   {
-    title: "Nutrition support",
-    body: "Nutrition support inside the app alongside your training, progress tracking, and accountability.",
+    title: "Nutrition support inside the app",
+    body: [
+      "Nutrition support is built into the transformation because training alone is not enough.",
+      "Inside the Elite Pocket PT app, nutrition sits alongside your training so your food, targets, habits and progress can be managed together.",
+      "You can work from nutrition targets, log meals, track consistency and use the app to make better decisions around what you are eating. The aim is not to put everyone on an extreme diet. The aim is to give you enough structure to support your goal properly.",
+      "For fat loss, this means creating enough consistency to move body composition in the right direction without relying on guesswork. For muscle gain, it means making sure your intake supports training and recovery. For recomposition, it means balancing training quality, protein, calories, consistency and progress tracking.",
+      "The nutrition support is there to help you understand what is actually driving progress, not just follow a short-term food plan you abandon after 8 weeks.",
+    ],
   },
   {
-    title: "Progress tracking",
-    body: "Weekly body weight is expected through the app Progress section.",
+    title: "Progress tracking that actually means something",
+    body: [
+      "Progress is tracked through the app so decisions are based on trends, not emotion.",
+      "You will be expected to track weekly body weight and relevant progress markers throughout the 8 weeks. This helps build a clearer picture of what is actually happening.",
+      "One scale reading does not tell the full story. One bad gym session does not mean the plan is failing. One flat morning in the mirror does not mean you are not progressing.",
+      "The point of tracking is to collect enough information to see patterns. Are you training consistently? Is body weight moving in the expected direction? Are you getting stronger? Are you recovering? Are you following the nutrition targets closely enough?",
+      "Better data leads to better decisions. Without tracking, most people either panic too early, change the plan too often, or miss the progress that is actually happening.",
+    ],
   },
   {
-    title: "Accountability",
-    body: "A clear 8-week structure built around consistent app-based training, nutrition, and progress tracking.",
+    title: "Accountability across the full 8 weeks",
+    body: [
+      "The programme gives you structure and accountability from start to finish.",
+      "You are not just buying access and being left alone. The transformation is built around a clear 8-week timeline, app-based structure, nutrition targets, progress tracking, education and cohort support.",
+      "Accountability does not mean being shouted at every day. It means there is a system around you that makes it harder to drift. You know when the programme starts, what you are working towards, what needs to be tracked, and where to go for support.",
+      "This matters because motivation is unreliable. Most people are motivated at the start, but the real work happens when life gets busy, training feels repetitive, weight fluctuates, or progress slows.",
+      "The accountability structure is there to help you keep showing up long enough for the plan to work.",
+    ],
   },
   {
-    title: "Private WhatsApp cohort group",
-    body: "Clients are manually added to the private WhatsApp cohort group on Tuesday 1 September 2026.",
+    title: "Private WhatsApp cohort support",
+    body: [
+      "Clients are manually added to the private WhatsApp cohort group on Tuesday 1 September 2026.",
+      "The WhatsApp group gives the transformation a proper group environment. It is there for programme updates, reminders, questions, support and accountability throughout the 8 weeks.",
+      "This means you are not going through the programme completely isolated. You will be part of a cohort of people following the same 8-week structure, working through the same timeline and dealing with the same challenges around training, nutrition and consistency.",
+      "The group helps create momentum. It gives you reminders, support, shared accountability and a place to stay connected to the programme.",
+      "It is not designed to replace the app. The app delivers the structure. The WhatsApp group supports the process around it.",
+    ],
   },
   {
     title: "Educational webinar access",
-    body: "Access to the educational webinar section on elitepocketpt.com while app access is valid.",
+    body: [
+      "You get access to the educational webinar section on elitepocketpt.com while your app access is valid.",
+      "These webinars are a major part of the value of the transformation because they help you understand the process instead of blindly following instructions.",
+      "The education is practical, evidence-based and designed to help you make better decisions around training, nutrition, recovery and lifestyle.",
+      "Topics include post-workout nutrition, strength vs hypertrophy, insulin resistance, sleep hygiene, recovery, supplements, steps, sunlight, sauna and plastic exposure.",
+      "The goal is to help you understand what matters, what does not, where most people waste time, and how to make better choices beyond the 8 weeks.",
+      "This is important because long-term change does not come from simply being told what to do. It comes from understanding why you are doing it.",
+    ],
   },
   {
-    title: "Mobility support",
-    body: "The Elite Pocket PT app includes a mobility generator to support your training week.",
+    title: "Mobility and recovery support",
+    body: [
+      "The Elite Pocket PT app includes a mobility generator to support your training week.",
+      "Mobility and recovery are included because an 8-week transformation requires consistency, and consistency is much harder if your body feels beaten up, restricted or underprepared.",
+      "The mobility support helps you build targeted work around your needs instead of leaving warm-ups, movement quality and recovery as an afterthought.",
+      "This can support better preparation for training, better movement quality and better management of the physical demands of the programme.",
+      "The goal is not to turn mobility into another complicated programme. The goal is to give you a practical tool that helps you keep training well across the full 8 weeks.",
+    ],
   },
 ];
 
@@ -176,11 +225,24 @@ export default function EliteEightWeekTransformationPage() {
         <div className="mx-auto max-w-7xl">
           <div className="mx-auto max-w-3xl text-center">
             <p className="text-sm font-bold uppercase tracking-[0.22em] text-[#1157D8]">
-              What is included
+              WHAT YOU GET INSIDE THE ELITE 8-WEEK TRANSFORMATION
             </p>
             <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#0B1220] sm:text-4xl">
-              The 8-week structure
+              The Elite 8-week Transformation is built as a complete coaching structure, not a loose collection of workouts.
             </h2>
+            <div className="mt-5 space-y-4 text-base font-medium leading-8 text-[#4B5563]">
+              <p>
+                For 8 weeks, you get access to the Elite Pocket PT app, structured
+                app-based training, nutrition support, progress tracking,
+                accountability, private WhatsApp cohort support, mobility tools and
+                educational webinars.
+              </p>
+              <p>
+                The goal is to give you one clear system to follow so you know what
+                to train, how to support it with nutrition, what to track, when to
+                adjust, and how to stay consistent for the full 8 weeks.
+              </p>
+            </div>
           </div>
 
           <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -190,12 +252,22 @@ export default function EliteEightWeekTransformationPage() {
                 className="rounded-[1.5rem] border border-[#E5E7EB] bg-white p-6 shadow-[0_18px_44px_rgba(15,23,42,0.08)]"
               >
                 <h3 className="text-lg font-bold leading-7 text-[#0B1220]">{item.title}</h3>
-                <p className="mt-3 text-sm font-semibold leading-6 text-[#4B5563]">
-                  {item.body}
-                </p>
+                <div className="mt-4 space-y-3 text-sm font-semibold leading-6 text-[#4B5563]">
+                  {item.body.map((paragraph) => (
+                    <p key={paragraph}>{paragraph}</p>
+                  ))}
+                </div>
               </div>
             ))}
           </div>
+
+          <p className="mx-auto mt-10 max-w-4xl text-center text-base font-bold leading-8 text-[#0B1220]">
+            Everything in the transformation is designed to work together: training
+            gives you the structure, nutrition supports the goal, progress tracking
+            shows what is changing, education teaches you why it matters, mobility
+            helps you keep moving well, and accountability helps you stay consistent
+            for the full 8 weeks.
+          </p>
         </div>
       </section>
 
