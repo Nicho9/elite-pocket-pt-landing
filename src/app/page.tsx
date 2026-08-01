@@ -14,7 +14,6 @@ const coachMikeImages = [
 
 type CheckoutPlan = "full_app" | "vip";
 type CheckoutStatus = "idle" | "loading" | "error";
-type NewsletterStatus = "idle" | "loading" | "success" | "error";
 
 export default function Home() {
   const heroVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -28,10 +27,6 @@ export default function Home() {
   const [checkoutConfirmPassword, setCheckoutConfirmPassword] = useState("");
   const [checkoutStatus, setCheckoutStatus] = useState<CheckoutStatus>("idle");
   const [checkoutErrorMessage, setCheckoutErrorMessage] = useState("");
-  const [newsletterName, setNewsletterName] = useState("");
-  const [newsletterEmail, setNewsletterEmail] = useState("");
-  const [newsletterStatus, setNewsletterStatus] = useState<NewsletterStatus>("idle");
-  const [newsletterMessage, setNewsletterMessage] = useState("");
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -157,69 +152,6 @@ export default function Home() {
     }
   }
 
-  async function handleNewsletterSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    const trimmedName = newsletterName.trim();
-    const trimmedEmail = newsletterEmail.trim().toLowerCase();
-
-    setNewsletterStatus("idle");
-    setNewsletterMessage("");
-
-    if (!trimmedName) {
-      setNewsletterStatus("error");
-      setNewsletterMessage("Full name is required.");
-      return;
-    }
-
-    if (!trimmedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
-      setNewsletterStatus("error");
-      setNewsletterMessage("A valid email is required.");
-      return;
-    }
-
-    setNewsletterStatus("loading");
-
-    try {
-      const response = await fetch("/api/waitlist", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: trimmedName,
-          email: trimmedEmail,
-          referralSource: "landing_newsletter_signup",
-        }),
-      });
-      const payload = (await response.json()) as {
-        success?: boolean;
-        code?: string;
-        error?: string;
-      };
-
-      if (response.ok && payload.success) {
-        setNewsletterStatus("success");
-        setNewsletterMessage("You’re on the newsletter list.");
-        setNewsletterName("");
-        setNewsletterEmail("");
-        return;
-      }
-
-      if (payload.code === "duplicate_email") {
-        setNewsletterStatus("success");
-        setNewsletterMessage("You’re already on the newsletter list.");
-        return;
-      }
-
-      setNewsletterStatus("error");
-      setNewsletterMessage(payload.error || "Could not join the newsletter.");
-    } catch {
-      setNewsletterStatus("error");
-      setNewsletterMessage("Could not join the newsletter.");
-    }
-  }
-
   const checkoutPlanLabel =
     selectedCheckoutPlan === "vip" ? "VIP Coaching" : "Full App Access";
   const checkoutTitle =
@@ -247,6 +179,9 @@ export default function Home() {
             </a>
             <Link href="/vip-webinars" className="transition hover:text-[#1157D8]">
               VIP Webinars
+            </Link>
+            <Link href="/newsletter" className="transition hover:text-[#1157D8]">
+              Newsletter
             </Link>
           </div>
 
@@ -341,6 +276,13 @@ export default function Home() {
               VIP Webinars
             </Link>
             <Link
+              href="/newsletter"
+              onClick={() => setMobileMenuOpen(false)}
+              className="rounded-2xl px-4 py-4 transition hover:bg-[#F5F7FB] hover:text-[#1157D8]"
+            >
+              Newsletter
+            </Link>
+            <Link
               href="/login"
               onClick={() => setMobileMenuOpen(false)}
               className="rounded-2xl px-4 py-4 transition hover:bg-[#F5F7FB] hover:text-[#1157D8]"
@@ -354,6 +296,13 @@ export default function Home() {
       <main className="min-h-screen bg-[#F5F7FB] text-[#111827]">
       <section className="bg-[#080A0D] px-5 pb-4 pt-24 text-white">
         <div className="mx-auto w-full max-w-7xl">
+          <Image
+            src="/elite-pocket-pt-hero-overlay-cropped.png"
+            alt="Elite Pocket PT — The easiest way to reach your goals."
+            width={954}
+            height={308}
+            className="mb-5 h-auto w-[90%] max-w-[32rem] sm:mb-7 sm:w-[32rem]"
+          />
           <div className="relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-[#111418] shadow-[0_28px_90px_rgba(0,0,0,0.42)]">
             <video
               ref={heroVideoRef}
@@ -371,13 +320,6 @@ export default function Home() {
               />
               <source src="/hero/landing-hero-video.mp4" type="video/mp4" />
             </video>
-            <Image
-              src="/elite-pocket-pt-hero-overlay-cropped.png"
-              alt=""
-              width={954}
-              height={308}
-              className="pointer-events-none absolute left-4 top-4 z-10 h-auto w-[72%] max-w-[34rem] sm:left-8 sm:top-6 sm:w-[38%]"
-            />
             <button
               type="button"
               onClick={handleToggleHeroSound}
@@ -406,13 +348,7 @@ export default function Home() {
       </section>
 
       <section className="bg-[#080A0D] px-4 py-2 sm:px-5">
-        <div className="mx-auto flex w-full max-w-7xl flex-col items-center justify-center gap-4 sm:flex-row">
-          <a
-            href="#newsletter"
-            className="inline-flex min-h-14 w-full max-w-md cursor-pointer items-center justify-center rounded-full border border-[#8DBBFF]/50 bg-[linear-gradient(180deg,#1D6AE5_0%,#1157D8_100%)] px-10 py-4 text-center text-lg font-extrabold text-white shadow-[0_16px_42px_rgba(17,87,216,0.42),inset_0_1px_0_rgba(255,255,255,0.2)] transition duration-200 hover:-translate-y-1 hover:brightness-110 hover:shadow-[0_22px_54px_rgba(17,87,216,0.52),inset_0_1px_0_rgba(255,255,255,0.24)] active:translate-y-0 active:scale-[0.98] active:brightness-95 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#8DBBFF]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#080A0D] sm:w-72"
-          >
-            Sign up to the free newsletter
-          </a>
+        <div className="mx-auto flex w-full max-w-7xl justify-center">
           <a
             href="https://apps.apple.com/redeem?ctx=offercodes&id=6761879840&code=ENGLANDFINAL"
             target="_blank"
@@ -542,74 +478,6 @@ export default function Home() {
                 </span>
               </span>
             </Link>
-          </div>
-        </div>
-      </section>
-      <section id="newsletter" className="scroll-mt-24 bg-[#F5F7FB] px-4 py-12 sm:px-5 sm:py-16 lg:py-20">
-        <div className="mx-auto max-w-5xl rounded-[2rem] border border-[#E5E7EB] bg-white p-5 shadow-[0_18px_44px_rgba(15,23,42,0.08)] sm:p-8">
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1fr)] lg:items-center">
-            <div>
-              <p className="text-sm font-bold uppercase tracking-[0.22em] text-[#1157D8]">
-                Newsletter
-              </p>
-              <h2 className="mt-3 text-2xl font-bold tracking-tight text-[#0B1220] sm:text-3xl">
-                Join the Elite Pocket PT newsletter
-              </h2>
-              <p className="mt-3 text-base font-medium leading-7 text-[#4B5563]">
-                Get app updates, coaching education, launch offers, and performance nutrition insights from Coach Mike.
-              </p>
-            </div>
-
-            <form onSubmit={handleNewsletterSubmit} className="grid gap-3">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <label className="grid gap-2">
-                  <span className="text-xs font-bold uppercase tracking-[0.16em] text-[#6B7280]">
-                    Full name
-                  </span>
-                  <input
-                    value={newsletterName}
-                    onChange={(event) => setNewsletterName(event.target.value)}
-                    disabled={newsletterStatus === "loading"}
-                    placeholder="Your name"
-                    className="h-12 rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] px-4 text-sm font-semibold text-[#0B1220] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#1157D8] focus:bg-white disabled:cursor-not-allowed disabled:opacity-70"
-                  />
-                </label>
-                <label className="grid gap-2">
-                  <span className="text-xs font-bold uppercase tracking-[0.16em] text-[#6B7280]">
-                    Email
-                  </span>
-                  <input
-                    type="email"
-                    value={newsletterEmail}
-                    onChange={(event) => setNewsletterEmail(event.target.value)}
-                    disabled={newsletterStatus === "loading"}
-                    placeholder="you@example.com"
-                    className="h-12 rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] px-4 text-sm font-semibold text-[#0B1220] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#1157D8] focus:bg-white disabled:cursor-not-allowed disabled:opacity-70"
-                  />
-                </label>
-              </div>
-              <button
-                type="submit"
-                disabled={newsletterStatus === "loading"}
-                className="h-12 w-full rounded-xl bg-[#1157D8] px-5 text-sm font-bold text-white shadow-[0_14px_32px_rgba(17,87,216,0.22)] transition hover:bg-[#0A39A8] disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                {newsletterStatus === "loading" ? "Joining..." : "Join newsletter"}
-              </button>
-              <p className="text-sm font-semibold leading-6 text-[#6B7280]">
-                No spam. Just useful coaching, app updates, and offers.
-              </p>
-              {newsletterMessage && (
-                <p
-                  className={`rounded-xl px-4 py-3 text-sm font-semibold ${
-                    newsletterStatus === "error"
-                      ? "border border-red-100 bg-red-50 text-red-600"
-                      : "border border-emerald-100 bg-emerald-50 text-emerald-700"
-                  }`}
-                >
-                  {newsletterMessage}
-                </p>
-              )}
-            </form>
           </div>
         </div>
       </section>
