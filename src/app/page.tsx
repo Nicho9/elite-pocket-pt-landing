@@ -378,14 +378,6 @@ export default function Home() {
               height={308}
               className="pointer-events-none absolute left-4 top-4 z-10 h-auto w-[72%] max-w-[34rem] sm:left-8 sm:top-6 sm:w-[38%]"
             />
-            <a
-              href="https://apps.apple.com/redeem?ctx=offercodes&id=6761879840&code=ENGLANDFINAL"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="absolute bottom-4 left-4 z-20 inline-flex min-h-13 max-w-[calc(100%-5.5rem)] cursor-pointer items-center justify-center whitespace-nowrap rounded-full border border-[#8DBBFF]/60 bg-[linear-gradient(180deg,#1D6AE5_0%,#1157D8_100%)] px-5 py-3 text-sm font-extrabold text-white shadow-[0_14px_38px_rgba(17,87,216,0.5),inset_0_1px_0_rgba(255,255,255,0.24)] transition duration-200 hover:-translate-y-1 hover:brightness-110 hover:shadow-[0_20px_48px_rgba(17,87,216,0.58),inset_0_1px_0_rgba(255,255,255,0.28)] active:translate-y-0 active:scale-[0.98] active:brightness-95 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#8DBBFF]/80 focus-visible:ring-offset-2 focus-visible:ring-offset-[#080A0D] sm:bottom-7 sm:left-8 sm:min-h-14 sm:max-w-none sm:px-8 sm:py-4 sm:text-base"
-            >
-              Start your FREE 3-day trial
-            </a>
             <button
               type="button"
               onClick={handleToggleHeroSound}
