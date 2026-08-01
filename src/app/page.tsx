@@ -716,6 +716,21 @@ export default function Home() {
                 reverse: true,
               },
               {
+                title: "Health Tracking",
+                headline: "Your health, training and nutrition — connected",
+                bullets: [
+                  "Connect Apple Health, Health Connect and supported wearables",
+                  "Combine sleep, HRV, recovery, training load, nutrition and hydration",
+                  "See your personalised Elite Readiness Score each day",
+                ],
+                images: [
+                  "/hero/health-dashboard.png",
+                  "/hero/elite-readiness-score.png",
+                  "/hero/connected-health-sources.png",
+                ],
+                reverse: false,
+              },
+              {
                 title: "Coaching",
                 headline: "Ongoing coaching, not just a plan",
                 bullets: [
@@ -728,7 +743,7 @@ export default function Home() {
                   "/hero/food-feedback.png",
                   "/hero/nutrition-generate-plan.png",
                 ],
-                reverse: false,
+                reverse: true,
               },
               {
                 title: "Performance",
@@ -743,7 +758,7 @@ export default function Home() {
                   "/hero/mobility-flow-player.png",
                   "/hero/community-page.png.PNG",
                 ],
-                reverse: true,
+                reverse: false,
               },
             ].map((pillar) => (
               <div
