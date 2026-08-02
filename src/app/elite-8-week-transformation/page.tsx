@@ -193,7 +193,7 @@ export default function EliteEightWeekTransformationPage() {
                   <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#9BC4FF]">
                     Price
                   </p>
-                  <p className="mt-2 text-3xl font-bold text-white">£200 one-off payment</p>
+                  <p className="mt-2 text-3xl font-bold text-white">£250 one-off payment</p>
                 </div>
                 <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.06] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
                   <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#9BC4FF]">
@@ -520,7 +520,7 @@ export default function EliteEightWeekTransformationPage() {
             Join the Elite 8-week Transformation
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-base font-medium leading-8 text-[#4B5563]">
-            Create your account and continue to secure checkout for the £200 one-off programme payment.
+            Create your account and continue to secure checkout for the £250 one-off programme payment.
           </p>
           <Link
             href="/elite-8-week-transformation/signup"

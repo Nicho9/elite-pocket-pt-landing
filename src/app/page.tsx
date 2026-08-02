@@ -457,7 +457,7 @@ export default function Home() {
               <span className="relative flex h-full flex-col justify-between gap-5">
                 <span>
                   <span className="inline-flex w-fit rounded-full border border-white/20 bg-white/15 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-white/85">
-                    £200 one-off
+                    £250 one-off
                   </span>
                   <span className="mt-5 block text-3xl font-bold leading-tight text-white">
                     Elite 8-week Transformation

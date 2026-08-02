@@ -1,9 +1,10 @@
-import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
 
-const transformationPriceId = "price_1TyUgzLuPG1NFWds7GW0d8iU";
+const transformationCheckoutUrl =
+  "https://buy.stripe.com/eVq4gA0BH4R5aZz81pdZ60X";
+const stripeClientReferenceIdPattern = /^[A-Za-z0-9_-]{1,200}$/;
 const referralSources = [
   "Mike Nicholson",
   "Elite Pocket PT",
@@ -20,8 +21,6 @@ type TransformationCheckoutRequestBody = {
 };
 
 type TransformationCheckoutEnv = {
-  stripeSecretKey: string;
-  siteUrl: string;
   supabaseUrl: string;
   supabaseServiceRoleKey: string;
   websiteSignupSecret: string;
@@ -44,15 +43,11 @@ function jsonResponse(body: Record<string, unknown>, status: number) {
 }
 
 function getRequiredEnv(): TransformationCheckoutEnv | null {
-  const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
   const supabaseUrl = process.env.SB_URL;
   const supabaseServiceRoleKey = process.env.SB_SERVICE_ROLE_KEY;
   const websiteSignupSecret = process.env.WEBSITE_SIGNUP_SECRET;
 
   if (
-    !stripeSecretKey ||
-    !siteUrl ||
     !supabaseUrl ||
     !supabaseServiceRoleKey ||
     !websiteSignupSecret
@@ -61,8 +56,6 @@ function getRequiredEnv(): TransformationCheckoutEnv | null {
   }
 
   return {
-    stripeSecretKey,
-    siteUrl: siteUrl.replace(/\/+$/, ""),
     supabaseUrl: supabaseUrl.replace(/\/+$/, ""),
     supabaseServiceRoleKey,
     websiteSignupSecret,
@@ -75,6 +68,18 @@ function getString(value: unknown) {
 
 function isValidReferralSource(value: string): value is (typeof referralSources)[number] {
   return referralSources.includes(value as (typeof referralSources)[number]);
+}
+
+function buildTransformationCheckoutUrl(transformationSignupId: string, email: string) {
+  if (!stripeClientReferenceIdPattern.test(transformationSignupId)) {
+    return null;
+  }
+
+  const checkoutUrl = new URL(transformationCheckoutUrl);
+  checkoutUrl.searchParams.set("client_reference_id", transformationSignupId);
+  checkoutUrl.searchParams.set("prefilled_email", email);
+
+  return checkoutUrl.toString();
 }
 
 function getSupabaseError(payload: WebsiteSignupResponse | null) {
@@ -127,8 +132,6 @@ export async function POST(request: Request) {
   if (!env) {
     console.error("Transformation checkout service is not configured", {
       missingEnv: {
-        STRIPE_SECRET_KEY: !process.env.STRIPE_SECRET_KEY,
-        NEXT_PUBLIC_SITE_URL: !process.env.NEXT_PUBLIC_SITE_URL,
         SB_URL: !process.env.SB_URL,
         SB_SERVICE_ROLE_KEY: !process.env.SB_SERVICE_ROLE_KEY,
         WEBSITE_SIGNUP_SECRET: !process.env.WEBSITE_SIGNUP_SECRET,
@@ -250,55 +253,23 @@ export async function POST(request: Request) {
       );
     }
 
-    const metadata: Stripe.MetadataParam = {
-      product: "elite_8_week_transformation",
-      programme: "Elite 8-week Transformation",
-      name,
+    const checkoutUrl = buildTransformationCheckoutUrl(
+      getString(transformationSignup.id),
       email,
-      user_id: userId,
-      transformation_signup_id: transformationSignup.id,
-      referral_source: referralSource,
-    };
-    const stripe = new Stripe(env.stripeSecretKey);
-    const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      line_items: [{ price: transformationPriceId, quantity: 1 }],
-      customer_email: email,
-      client_reference_id: userId,
-      metadata,
-      payment_intent_data: {
-        metadata,
-      },
-      success_url: `${env.siteUrl}/checkout/success?programme=elite-8-week-transformation`,
-      cancel_url: `${env.siteUrl}/elite-8-week-transformation/signup?cancelled=true`,
-    });
+    );
 
-    if (!session.url) {
+    if (!checkoutUrl) {
+      console.error("Transformation signup ID is not valid for Stripe reconciliation", {
+        transformation_signup_id: transformationSignup.id,
+      });
+
       return jsonResponse(
-        { success: false, error: "Could not create checkout session." },
-        502,
+        { success: false, error: "Could not create a reconciled checkout link." },
+        500,
       );
     }
 
-    const paymentIntentId =
-      typeof session.payment_intent === "string" ? session.payment_intent : null;
-    const { error: updateSignupError } = await adminSupabase
-      .from("transformation_signups")
-      .update({
-        stripe_checkout_session_id: session.id,
-        stripe_payment_intent_id: paymentIntentId,
-      })
-      .eq("id", transformationSignup.id);
-
-    if (updateSignupError) {
-      console.error("Transformation signup checkout session update failed", {
-        transformation_signup_id: transformationSignup.id,
-        message: updateSignupError.message,
-        code: updateSignupError.code,
-      });
-    }
-
-    return jsonResponse({ success: true, url: session.url }, 200);
+    return jsonResponse({ success: true, url: checkoutUrl }, 200);
   } catch (error) {
     const checkoutError = error instanceof Error ? error : null;
 

@@ -3,6 +3,9 @@ import { createClient } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
 
+const transformationCheckoutUrl =
+  "https://buy.stripe.com/eVq4gA0BH4R5aZz81pdZ60X";
+
 type WebhookEnv = {
   stripeSecretKey: string;
   stripeWebhookSecret: string;
@@ -33,11 +36,11 @@ function getRequiredEnv(): WebhookEnv | null {
 }
 
 function getTransformationSignupId(session: Stripe.Checkout.Session) {
-  if (session.metadata?.product !== "elite_8_week_transformation") {
-    return "";
+  if (session.metadata?.product === "elite_8_week_transformation") {
+    return session.metadata.transformation_signup_id || "";
   }
 
-  return session.metadata.transformation_signup_id || "";
+  return "";
 }
 
 function getPaymentIntentId(session: Stripe.Checkout.Session) {
@@ -72,13 +75,72 @@ export async function POST(request: Request) {
   }
 
   const session = event.data.object as Stripe.Checkout.Session;
-  const transformationSignupId = getTransformationSignupId(session);
+  let transformationSignupId = getTransformationSignupId(session);
+
+  if (!transformationSignupId && session.client_reference_id) {
+    const paymentLinkId =
+      typeof session.payment_link === "string" ? session.payment_link : session.payment_link?.id;
+
+    if (!paymentLinkId) {
+      return jsonResponse({ success: true }, 200);
+    }
+
+    try {
+      const paymentLink = await stripe.paymentLinks.retrieve(paymentLinkId);
+
+      if (paymentLink.url !== transformationCheckoutUrl) {
+        return jsonResponse({ success: true }, 200);
+      }
+    } catch (error) {
+      const stripeError = error instanceof Error ? error : null;
+
+      console.error("Transformation Payment Link verification failed", {
+        payment_link_id: paymentLinkId,
+        message: stripeError?.message,
+      });
+
+      return jsonResponse({ success: false, error: "Could not verify Payment Link." }, 500);
+    }
+
+    transformationSignupId = session.client_reference_id;
+  }
 
   if (!transformationSignupId) {
     return jsonResponse({ success: true }, 200);
   }
 
   const supabase = createClient(env.supabaseUrl, env.supabaseServiceRoleKey);
+  const { data: transformationSignup, error: lookupError } = await supabase
+    .from("transformation_signups")
+    .select(
+      "id, user_id, email, referral_source, payment_status, stripe_checkout_session_id, stripe_payment_intent_id",
+    )
+    .eq("id", transformationSignupId)
+    .maybeSingle();
+
+  if (lookupError) {
+    console.error("Transformation signup webhook lookup failed", {
+      eventType: event.type,
+      transformation_signup_id: transformationSignupId,
+      message: lookupError.message,
+      code: lookupError.code,
+    });
+
+    return jsonResponse({ success: false, error: "Could not resolve transformation signup." }, 500);
+  }
+
+  if (!transformationSignup) {
+    return jsonResponse({ success: true }, 200);
+  }
+
+  if (
+    transformationSignup.payment_status === "paid" &&
+    (event.type === "checkout.session.expired" ||
+      transformationSignup.stripe_checkout_session_id === session.id)
+  ) {
+    return jsonResponse({ success: true }, 200);
+  }
+
   const now = new Date().toISOString();
   const updatePayload =
     event.type === "checkout.session.completed"
@@ -113,6 +175,7 @@ export async function POST(request: Request) {
   console.log("Transformation signup webhook processed", {
     eventType: event.type,
     transformation_signup_id: transformationSignupId,
+    user_id: transformationSignup.user_id,
   });
 
   return jsonResponse({ success: true }, 200);

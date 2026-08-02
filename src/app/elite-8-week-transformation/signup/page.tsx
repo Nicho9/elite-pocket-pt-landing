@@ -124,7 +124,7 @@ export default function EliteEightWeekTransformationSignupPage() {
                   Elite 8-week Transformation
                 </h2>
                 <div className="mt-6 grid gap-3 text-sm font-semibold leading-6 text-[#D7E4FF]">
-                  <p>£200 one-off payment</p>
+                  <p>£250 one-off payment</p>
                   <p>8 weeks</p>
                   <p>Next transformation starts Monday 7 September 2026</p>
                   <p>Onboarding call Sunday 6 September 2026</p>
