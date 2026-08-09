@@ -45,11 +45,19 @@ type UserRow = {
   nutrition_log_count: number | null;
   workout_log_count: number | null;
   mobility_flow_count: number | null;
+  core_stability_flow_count: number | null;
+  last_core_stability_flow_at: string | null;
   has_workout_profile: boolean | null;
   has_meal_plan: boolean | null;
   has_nutrition_logs: boolean | null;
   has_workout_logs: boolean | null;
   has_mobility_flow: boolean | null;
+  has_core_stability_flow: boolean | null;
+  latest_readiness_score: number | null;
+  latest_readiness_score_date: string | null;
+  latest_readiness_status_band: string | null;
+  latest_readiness_confidence: string | null;
+  latest_readiness_generated_at: string | null;
   last_activity_at: string | null;
   days_since_login: number | null;
   days_since_last_activity: number | null;
@@ -85,6 +93,7 @@ type DashboardKpis = {
   missing_meal_plan: number | null;
   nutrition_adopters: number | null;
   mobility_adopters: number | null;
+  core_stability_adopters: number | null;
   workout_adopters: number | null;
 };
 
@@ -104,7 +113,12 @@ type ActivationFilter =
   | "missing_workout_profile"
   | "missing_meal_plan"
   | "no_feature_usage";
-type FeatureFilter = "all" | "nutrition_adopters" | "mobility_adopters" | "workout_adopters";
+type FeatureFilter =
+  | "all"
+  | "nutrition_adopters"
+  | "mobility_adopters"
+  | "core_stability_adopters"
+  | "workout_adopters";
 type SelectedKpiFilter = keyof DashboardKpis | null;
 
 const kpiCards: Array<[string, keyof DashboardKpis]> = [
@@ -133,6 +147,7 @@ const kpiCards: Array<[string, keyof DashboardKpis]> = [
   ["Missing meal plan", "missing_meal_plan"],
   ["Nutrition adopters", "nutrition_adopters"],
   ["Mobility adopters", "mobility_adopters"],
+  ["Core & Stability adopters", "core_stability_adopters"],
   ["Workout adopters", "workout_adopters"],
 ];
 
@@ -167,6 +182,7 @@ const featureFilterLabels: Record<FeatureFilter, string> = {
   all: "All feature usage",
   nutrition_adopters: "Nutrition adopters",
   mobility_adopters: "Mobility adopters",
+  core_stability_adopters: "Core & Stability adopters",
   workout_adopters: "Workout adopters",
 };
 
@@ -197,6 +213,7 @@ const kpiFilterLabels: Record<keyof DashboardKpis, string> = {
   missing_meal_plan: "Missing meal plan",
   nutrition_adopters: "Nutrition adopters",
   mobility_adopters: "Mobility adopters",
+  core_stability_adopters: "Core & Stability adopters",
   workout_adopters: "Workout adopters",
 };
 
@@ -217,6 +234,31 @@ function formatDateTime(value: string | null) {
     year: "numeric",
     hour: "numeric",
     minute: "2-digit",
+  });
+}
+
+function formatDate(value: string | null) {
+  if (!value) {
+    return "Not set";
+  }
+
+  const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  const date = dateOnlyMatch
+    ? new Date(
+        Number(dateOnlyMatch[1]),
+        Number(dateOnlyMatch[2]) - 1,
+        Number(dateOnlyMatch[3]),
+      )
+    : new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
   });
 }
 
@@ -381,7 +423,9 @@ function hasNoFeatureUsage(user: UserRow) {
   return (
     user.nutrition_log_count === 0 &&
     user.workout_log_count === 0 &&
-    user.mobility_flow_count === 0
+    user.mobility_flow_count === 0 &&
+    (user.core_stability_flow_count ?? 0) === 0 &&
+    user.has_core_stability_flow !== true
   );
 }
 
@@ -502,6 +546,10 @@ function matchesSelectedKpiFilter(user: UserRow, selectedKpiFilter: SelectedKpiF
 
   if (selectedKpiFilter === "mobility_adopters") {
     return user.has_mobility_flow === true;
+  }
+
+  if (selectedKpiFilter === "core_stability_adopters") {
+    return user.has_core_stability_flow === true;
   }
 
   return user.has_workout_logs === true;
@@ -637,6 +685,8 @@ export default function AdminPage() {
       featureFilter === "all" ||
       (featureFilter === "nutrition_adopters" && user.has_nutrition_logs === true) ||
       (featureFilter === "mobility_adopters" && user.has_mobility_flow === true) ||
+      (featureFilter === "core_stability_adopters" &&
+        user.has_core_stability_flow === true) ||
       (featureFilter === "workout_adopters" && user.has_workout_logs === true);
 
     return (
@@ -832,6 +882,7 @@ export default function AdminPage() {
                 <option value="all">All</option>
                 <option value="nutrition_adopters">Nutrition adopters</option>
                 <option value="mobility_adopters">Mobility adopters</option>
+                <option value="core_stability_adopters">Core &amp; Stability adopters</option>
                 <option value="workout_adopters">Workout adopters</option>
               </select>
             </label>
@@ -852,7 +903,7 @@ export default function AdminPage() {
             </p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[2400px] border-collapse text-left text-sm">
+              <table className="w-full min-w-[2700px] border-collapse text-left text-sm">
                 <thead className="bg-[#F8FAFC] text-xs font-bold uppercase tracking-[0.16em] text-[#6B7280]">
                   <tr>
                     <th className="px-5 py-4">Name</th>
@@ -876,6 +927,8 @@ export default function AdminPage() {
                     <th className="px-5 py-4">Nutrition logs</th>
                     <th className="px-5 py-4">Workout logs</th>
                     <th className="px-5 py-4">Mobility flows</th>
+                    <th className="px-5 py-4">Core &amp; Stability flows</th>
+                    <th className="px-5 py-4">Elite Readiness</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#E5E7EB]">
@@ -951,6 +1004,31 @@ export default function AdminPage() {
                       </td>
                       <td className="px-5 py-4 text-[#4B5563]">
                         {formatCount(user.mobility_flow_count)}
+                      </td>
+                      <td className="px-5 py-4 text-[#4B5563]">
+                        {formatCount(user.core_stability_flow_count)}
+                      </td>
+                      <td className="px-5 py-4">
+                        {typeof user.latest_readiness_score === "number" &&
+                        Number.isFinite(user.latest_readiness_score) ? (
+                          <div className="min-w-32">
+                            <p className="text-base font-bold text-[#0B1220]">
+                              {user.latest_readiness_score}/100
+                            </p>
+                            {user.latest_readiness_status_band && (
+                              <p className="mt-1 text-xs font-semibold text-[#4B5563]">
+                                {formatStatusLabel(user.latest_readiness_status_band)}
+                              </p>
+                            )}
+                            {user.latest_readiness_score_date && (
+                              <p className="mt-1 text-xs text-[#6B7280]">
+                                {formatDate(user.latest_readiness_score_date)}
+                              </p>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="font-semibold text-[#6B7280]">Not available</span>
+                        )}
                       </td>
                     </tr>
                   ))}

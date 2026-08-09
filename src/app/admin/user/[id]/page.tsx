@@ -97,6 +97,15 @@ type BodyweightLog = {
   notes: string | null;
 };
 
+type ReadinessSnapshot = {
+  score: number | null;
+  score_date: string | null;
+  status_band: string | null;
+  confidence: string | null;
+  valid_baseline_day_count: number | null;
+  generated_at: string | null;
+};
+
 const tabs = ["Overview", "Nutrition", "Workouts", "Community", "Progress"] as const;
 
 type ActiveTab = (typeof tabs)[number];
@@ -129,6 +138,38 @@ function formatDate(value: string | null) {
     month: "short",
     year: "numeric",
   });
+}
+
+function formatDateTime(value: string | null) {
+  if (!value) {
+    return "Not set";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleString(undefined, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function formatStatusLabel(value: string | null) {
+  if (!value) {
+    return "Not available";
+  }
+
+  return value
+    .split("_")
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
 }
 
 function getDateOnly(date: Date) {
@@ -674,6 +715,9 @@ export default function AdminUserPage() {
   const [strengthMetricsErrorMessage, setStrengthMetricsErrorMessage] = useState("");
   const [bodyweightLogs, setBodyweightLogs] = useState<BodyweightLog[]>([]);
   const [bodyweightLogsErrorMessage, setBodyweightLogsErrorMessage] = useState("");
+  const [readinessSnapshot, setReadinessSnapshot] = useState<ReadinessSnapshot | null>(null);
+  const [isLoadingReadiness, setIsLoadingReadiness] = useState(true);
+  const [readinessErrorMessage, setReadinessErrorMessage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [activeTab, setActiveTab] = useState<ActiveTab>("Overview");
@@ -684,6 +728,9 @@ export default function AdminUserPage() {
     async function loadUserProfile() {
       setIsLoading(true);
       setErrorMessage("");
+      setIsLoadingReadiness(true);
+      setReadinessErrorMessage("");
+      setReadinessSnapshot(null);
 
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
 
@@ -691,6 +738,7 @@ export default function AdminUserPage() {
         if (isMounted) {
           setErrorMessage(sessionError.message);
           setIsLoading(false);
+          setIsLoadingReadiness(false);
         }
         return;
       }
@@ -712,6 +760,7 @@ export default function AdminUserPage() {
         if (isMounted) {
           setErrorMessage(currentUserProfileError.message);
           setIsLoading(false);
+          setIsLoadingReadiness(false);
         }
         return;
       }
@@ -736,9 +785,35 @@ export default function AdminUserPage() {
       if (error) {
         setErrorMessage(error.message);
         setIsLoading(false);
+        setIsLoadingReadiness(false);
       } else {
         setProfile(data);
         setIsLoading(false);
+
+        const { data: readinessData, error: readinessError } = await supabase
+          .schema("public")
+          .from("elite_readiness_snapshot")
+          .select(
+            "score,score_date,status_band,confidence,valid_baseline_day_count,generated_at",
+          )
+          .eq("user_id", params.id)
+          .order("score_date", { ascending: false })
+          .order("generated_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (!isMounted) {
+          return;
+        }
+
+        if (readinessError) {
+          setReadinessErrorMessage(readinessError.message);
+          setReadinessSnapshot(null);
+        } else {
+          setReadinessSnapshot(readinessData as ReadinessSnapshot | null);
+        }
+
+        setIsLoadingReadiness(false);
 
         if (data.email) {
           setIsLoadingNutrition(true);
@@ -1113,6 +1188,76 @@ export default function AdminUserPage() {
                           </p>
                         </div>
                       ))}
+                    </div>
+                  </section>
+
+                  <section>
+                    <h2 className="text-lg font-bold text-[#0B1220]">Elite Readiness</h2>
+                    <div className="mt-4 overflow-hidden rounded-2xl border border-[#DCE6F8] bg-gradient-to-br from-[#F8FAFF] to-white p-5 sm:p-6">
+                      {isLoadingReadiness ? (
+                        <p className="text-sm font-semibold text-[#4B5563]">
+                          Loading Elite Readiness...
+                        </p>
+                      ) : readinessErrorMessage ? (
+                        <p className="rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
+                          Elite Readiness is temporarily unavailable: {readinessErrorMessage}
+                        </p>
+                      ) : readinessSnapshot &&
+                        typeof readinessSnapshot.score === "number" &&
+                        Number.isFinite(readinessSnapshot.score) ? (
+                        <div className="grid gap-6 lg:grid-cols-[minmax(180px,0.7fr)_minmax(0,1.3fr)] lg:items-center">
+                          <div>
+                            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#1157D8]">
+                              Latest authoritative score
+                            </p>
+                            <p className="mt-3 text-5xl font-bold tracking-tight text-[#0B1220]">
+                              {readinessSnapshot.score}
+                              <span className="text-2xl text-[#4B5563]">/100</span>
+                            </p>
+                            <p className="mt-3 text-base font-bold text-[#1157D8]">
+                              {formatStatusLabel(readinessSnapshot.status_band)}
+                            </p>
+                          </div>
+                          <dl className="grid gap-4 sm:grid-cols-2">
+                            <div>
+                              <dt className="text-xs font-bold uppercase tracking-[0.14em] text-[#6B7280]">
+                                Confidence
+                              </dt>
+                              <dd className="mt-1 text-sm font-semibold text-[#0B1220]">
+                                {formatStatusLabel(readinessSnapshot.confidence)}
+                              </dd>
+                            </div>
+                            <div>
+                              <dt className="text-xs font-bold uppercase tracking-[0.14em] text-[#6B7280]">
+                                Score date
+                              </dt>
+                              <dd className="mt-1 text-sm font-semibold text-[#0B1220]">
+                                {formatDate(readinessSnapshot.score_date)}
+                              </dd>
+                            </div>
+                            <div>
+                              <dt className="text-xs font-bold uppercase tracking-[0.14em] text-[#6B7280]">
+                                Valid baseline days
+                              </dt>
+                              <dd className="mt-1 text-sm font-semibold text-[#0B1220]">
+                                {formatValue(readinessSnapshot.valid_baseline_day_count)}
+                              </dd>
+                            </div>
+                            <div>
+                              <dt className="text-xs font-bold uppercase tracking-[0.14em] text-[#6B7280]">
+                                Generated
+                              </dt>
+                              <dd className="mt-1 text-sm font-semibold text-[#0B1220]">
+                                {formatDateTime(readinessSnapshot.generated_at)}
+                              </dd>
+                            </div>
+                          </dl>
+                        </div>
+                      ) : (
+                        <p className="text-sm font-semibold text-[#4B5563]">
+                          No Elite Readiness Score has been synced yet.
+                        </p>
+                      )}
                     </div>
                   </section>
 
