@@ -43,7 +43,9 @@ type UserRow = {
   workout_profile_count: number | null;
   meal_plan_count: number | null;
   nutrition_log_count: number | null;
+  nutrition_compliance_7d: number | null;
   workout_log_count: number | null;
+  workout_compliance_7d: number | null;
   mobility_flow_count: number | null;
   core_stability_flow_count: number | null;
   last_core_stability_flow_at: string | null;
@@ -415,6 +417,40 @@ function BooleanPill({ value }: { value: boolean | null | undefined }) {
   return (
     <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-bold ${tone}`}>
       {formatBoolean(value)}
+    </span>
+  );
+}
+
+function CompliancePill({
+  value,
+  label,
+}: {
+  value: number | null | undefined;
+  label: string;
+}) {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return (
+      <span className="font-semibold text-[#6B7280]" title={label} aria-label={`${label}: unavailable`}>
+        —
+      </span>
+    );
+  }
+
+  const tone =
+    value >= 80
+      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+      : value >= 50
+        ? "border-amber-200 bg-amber-50 text-amber-700"
+        : "border-red-200 bg-red-50 text-red-700";
+  const percentage = `${Math.round(value)}%`;
+
+  return (
+    <span
+      className={`inline-flex whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-bold ${tone}`}
+      title={label}
+      aria-label={`${label}: ${percentage}`}
+    >
+      {percentage}
     </span>
   );
 }
@@ -903,7 +939,7 @@ export default function AdminPage() {
             </p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[2700px] border-collapse text-left text-sm">
+              <table className="w-full min-w-[2950px] border-collapse text-left text-sm">
                 <thead className="bg-[#F8FAFC] text-xs font-bold uppercase tracking-[0.16em] text-[#6B7280]">
                   <tr>
                     <th className="px-5 py-4">Name</th>
@@ -925,7 +961,19 @@ export default function AdminPage() {
                     <th className="px-5 py-4">Workout profile</th>
                     <th className="px-5 py-4">Meal plan</th>
                     <th className="px-5 py-4">Nutrition logs</th>
+                    <th className="px-5 py-4">
+                      <span className="block">Nutrition Compliance</span>
+                      <span className="mt-1 block text-[10px] normal-case tracking-normal text-[#9CA3AF]">
+                        7 days
+                      </span>
+                    </th>
                     <th className="px-5 py-4">Workout logs</th>
+                    <th className="px-5 py-4">
+                      <span className="block">Workout Compliance</span>
+                      <span className="mt-1 block text-[10px] normal-case tracking-normal text-[#9CA3AF]">
+                        7 days
+                      </span>
+                    </th>
                     <th className="px-5 py-4">Mobility flows</th>
                     <th className="px-5 py-4">Core &amp; Stability flows</th>
                     <th className="px-5 py-4">Elite Readiness</th>
@@ -999,8 +1047,20 @@ export default function AdminPage() {
                       <td className="px-5 py-4 text-[#4B5563]">
                         {formatCount(user.nutrition_log_count)}
                       </td>
+                      <td className="px-5 py-4">
+                        <CompliancePill
+                          value={user.nutrition_compliance_7d}
+                          label="Rolling 7-day nutrition compliance"
+                        />
+                      </td>
                       <td className="px-5 py-4 text-[#4B5563]">
                         {formatCount(user.workout_log_count)}
+                      </td>
+                      <td className="px-5 py-4">
+                        <CompliancePill
+                          value={user.workout_compliance_7d}
+                          label="Rolling 7-day workout compliance"
+                        />
                       </td>
                       <td className="px-5 py-4 text-[#4B5563]">
                         {formatCount(user.mobility_flow_count)}
