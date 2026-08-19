@@ -834,7 +834,7 @@ export default function Home() {
             {[
               {
                 title: "Full App Access",
-                price: "$49",
+                price: "$39",
                 smallText:
                   "The complete Elite Pocket PT system for athletes who want structured training, nutrition, mobility, progress tracking, coaching feedback, and community support in one place.",
                 includes: [
