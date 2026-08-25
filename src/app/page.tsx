@@ -5,6 +5,102 @@ import Image from "next/image";
 import Link from "next/link";
 
 const iosAppStoreHref = "https://apps.apple.com/ae/app/elite-pocket-pt/id6761879840";
+const appleFreeTrialHref =
+  "https://apps.apple.com/redeem?ctx=offercodes&id=6761879840&code=3DAYFREE";
+
+type SystemPillarImageLayout = "standard" | "health" | "single";
+
+type SystemPillar = {
+  title: string;
+  headline: string;
+  bullets: string[];
+  images: Array<{ src: string; alt: string }>;
+  imageLayout: SystemPillarImageLayout;
+  reverse: boolean;
+};
+
+const systemPillars: SystemPillar[] = [
+  {
+    title: "Training",
+    headline: "Structured training built for progression",
+    bullets: [
+      "Programme generator based on your level, schedule and goals",
+      "Built across Base, Build and Perform phases",
+      "Strength assessment to tailor all working weights",
+    ],
+    images: [
+      { src: "/hero/workout-pageV2.png", alt: "Elite Pocket PT workout programme screen" },
+      { src: "/hero/workout-logV2.png", alt: "Elite Pocket PT workout logging screen" },
+      { src: "/hero/strength-assessmentV2.png", alt: "Elite Pocket PT strength assessment screen" },
+    ],
+    imageLayout: "standard",
+    reverse: false,
+  },
+  {
+    title: "Nutrition",
+    headline: "Practical nutrition that fits your lifestyle",
+    bullets: [
+      "Personalised meal plans based on goals and preferences",
+      "Flexible logging: photo, voice, database or meal plan",
+      "Built around training demands and real-world habits",
+    ],
+    images: [
+      { src: "/hero/nutrition-pageV2.png", alt: "Elite Pocket PT nutrition dashboard" },
+      { src: "/hero/my-meal-planV2.png", alt: "Personalised Elite Pocket PT meal plan" },
+      { src: "/hero/food-log-imageV2.png", alt: "Elite Pocket PT photo food logging screen" },
+    ],
+    imageLayout: "standard",
+    reverse: true,
+  },
+  {
+    title: "Elite Health",
+    headline: "Know how ready, recovered and healthy you are",
+    bullets: [
+      "Your Elite Readiness Score combines the signals that matter each day",
+      "Track sleep, recovery, Health Age and overall health trends",
+      "Turn wearable and health data into clear, actionable insight",
+    ],
+    images: [
+      { src: "/hero/health-dashboardV2.png", alt: "Elite Pocket PT Health dashboard" },
+      { src: "/hero/elite-readiness-scoreV2.png", alt: "Elite Readiness Score" },
+      { src: "/hero/elite-health-ageV2.png", alt: "Elite Health Age" },
+      { src: "/hero/elite-sleep-scoreV2.png", alt: "Elite Sleep Score" },
+      { src: "/hero/elite-balance-scoreV2.png", alt: "Elite Balance Score" },
+    ],
+    imageLayout: "health",
+    reverse: false,
+  },
+  {
+    title: "Your Diary",
+    headline: "Everything you need today, in one place",
+    bullets: [
+      "See today’s training, nutrition and health status at a glance",
+      "Know exactly what needs your attention without jumping between screens",
+      "Your daily view brings the Elite Pocket PT system together",
+    ],
+    images: [
+      { src: "/hero/Home-PageV2.PNG", alt: "Daily Elite Pocket PT diary and home screen" },
+    ],
+    imageLayout: "single",
+    reverse: true,
+  },
+  {
+    title: "Performance",
+    headline: "More than workouts — build a complete athlete",
+    bullets: [
+      "Core & Stability and mobility flows tailored to your needs",
+      "Build strength, movement quality and physical resilience",
+      "Stay engaged through progress tracking and the Elite community",
+    ],
+    images: [
+      { src: "/hero/Core-and-stabilityV2.PNG", alt: "Elite Pocket PT Core and Stability screen" },
+      { src: "/hero/mobility-flow-playerV2.png", alt: "Elite Pocket PT mobility flow player" },
+      { src: "/hero/community-pageV2.PNG", alt: "Elite Pocket PT community screen" },
+    ],
+    imageLayout: "standard",
+    reverse: false,
+  },
+];
 
 const coachMikeImages = [
   "/hero/coach-mike-profile.png",
@@ -350,7 +446,7 @@ export default function Home() {
       <section className="bg-[#080A0D] px-4 py-2 sm:px-5">
         <div className="mx-auto flex w-full max-w-7xl justify-center">
           <a
-            href="https://apps.apple.com/redeem?ctx=offercodes&id=6761879840&code=ENGLANDFINAL"
+            href={appleFreeTrialHref}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex min-h-14 w-full max-w-md cursor-pointer items-center justify-center rounded-full border border-[#8DBBFF]/50 bg-[linear-gradient(180deg,#1D6AE5_0%,#1157D8_100%)] px-10 py-4 text-center text-lg font-extrabold text-white shadow-[0_16px_42px_rgba(17,87,216,0.42),inset_0_1px_0_rgba(255,255,255,0.2)] transition duration-200 hover:-translate-y-1 hover:brightness-110 hover:shadow-[0_22px_54px_rgba(17,87,216,0.52),inset_0_1px_0_rgba(255,255,255,0.24)] active:translate-y-0 active:scale-[0.98] active:brightness-95 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#8DBBFF]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#080A0D] sm:w-72"
@@ -548,88 +644,20 @@ export default function Home() {
           </div>
 
           <div className="mt-14 space-y-12">
-            {[
-              {
-                title: "Training",
-                headline: "Structured training built for progression",
-                bullets: [
-                  "Programme generator based on your level, schedule and goals",
-                  "Built across Base, Build and Perform phases",
-                  "Strength assessment to tailor all working weights",
-                ],
-                images: [
-                  "/hero/workout-page.png",
-                  "/hero/workout-log.png",
-                  "/hero/strength-assessment.png",
-                ],
-                reverse: false,
-              },
-              {
-                title: "Nutrition",
-                headline: "Practical nutrition that fits your lifestyle",
-                bullets: [
-                  "Personalised meal plans based on goals and preferences",
-                  "Flexible logging: photo, voice, database or meal plan",
-                  "Built around training demands and real-world habits",
-                ],
-                images: [
-                  "/hero/nutrition-page.png",
-                  "/hero/my-meal-plan.png",
-                  "/hero/food-log-image.png",
-                ],
-                reverse: true,
-              },
-              {
-                title: "Health Tracking",
-                headline: "Your health, training and nutrition — connected",
-                bullets: [
-                  "Connect Apple Health, Health Connect and supported wearables",
-                  "Combine sleep, HRV, recovery, training load, nutrition and hydration",
-                  "See your personalised Elite Readiness Score each day",
-                ],
-                images: [
-                  "/hero/health-dashboard.png",
-                  "/hero/elite-readiness-score.png",
-                  "/hero/connected-health-sources.png",
-                ],
-                reverse: false,
-              },
-              {
-                title: "Coaching",
-                headline: "Ongoing coaching, not just a plan",
-                bullets: [
-                  "Feedback on every workout and meal",
-                  "Daily guidance based on training and nutrition",
-                  "Adjustments to keep you progressing",
-                ],
-                images: [
-                  "/hero/workout-feedback.png",
-                  "/hero/food-feedback.png",
-                  "/hero/nutrition-generate-plan.png",
-                ],
-                reverse: true,
-              },
-              {
-                title: "Performance",
-                headline: "Everything that drives results",
-                bullets: [
-                  "Daily mobility flows tailored to your needs",
-                  "Progress tracking: strength, body comp and performance",
-                  "Community, leaderboards and gamification",
-                ],
-                images: [
-                  "/hero/mobility-page.png",
-                  "/hero/mobility-flow-player.png",
-                  "/hero/community-page.png.PNG",
-                ],
-                reverse: false,
-              },
-            ].map((pillar) => (
+            {systemPillars.map((pillar) => (
               <div
                 key={pillar.title}
-                className="grid w-full max-w-full items-center gap-8 overflow-hidden rounded-[2rem] border border-[#E5E7EB] bg-[#F8FAFC] p-6 shadow-[0_18px_48px_rgba(15,23,42,0.08)] lg:grid-cols-2 lg:p-8"
+                className={`grid w-full max-w-full items-center gap-8 overflow-hidden rounded-[2rem] border border-[#E5E7EB] bg-[#F8FAFC] p-6 shadow-[0_18px_48px_rgba(15,23,42,0.08)] lg:p-8 ${
+                  pillar.imageLayout === "health"
+                    ? "lg:grid-cols-1"
+                    : "lg:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)]"
+                }`}
               >
-                <div className={`min-w-0 ${pillar.reverse ? "lg:order-2" : ""}`}>
+                <div
+                  className={`min-w-0 ${
+                    pillar.imageLayout === "health" ? "max-w-4xl" : ""
+                  } ${pillar.reverse ? "lg:order-2" : ""}`}
+                >
                   <p className="text-sm font-bold uppercase tracking-[0.22em] text-[#1157D8]">
                     {pillar.title}
                   </p>
@@ -649,17 +677,37 @@ export default function Home() {
                 </div>
 
                 <div className={`min-w-0 max-w-full ${pillar.reverse ? "lg:order-1" : ""}`}>
-                  <div className="flex max-w-full gap-4 overflow-x-auto rounded-[1.75rem] border border-white/80 bg-white/80 p-4 shadow-[0_14px_36px_rgba(15,23,42,0.08)] lg:overflow-hidden">
-                    {pillar.images.map((src, index) => (
+                  <div
+                    className={`max-w-full gap-4 rounded-[1.75rem] border border-white/80 bg-white/80 p-4 shadow-[0_14px_36px_rgba(15,23,42,0.08)] ${
+                      pillar.imageLayout === "health"
+                        ? "flex overflow-x-auto lg:grid lg:grid-cols-5 lg:justify-items-center lg:overflow-visible"
+                        : pillar.imageLayout === "single"
+                          ? "flex justify-center overflow-hidden"
+                          : "flex overflow-x-auto lg:grid lg:grid-cols-3 lg:overflow-visible"
+                    }`}
+                  >
+                    {pillar.images.map((image, index) => (
                       <div
-                        key={`${pillar.title}-${src}-${index}`}
-                        className="relative aspect-[390/844] w-[68vw] max-w-[260px] shrink-0 overflow-hidden rounded-[1.5rem] border-2 border-black bg-white shadow-[0_12px_28px_rgba(15,23,42,0.16)] sm:w-44 lg:w-44 lg:max-w-none"
+                        key={`${pillar.title}-${image.src}-${index}`}
+                        className={`relative aspect-[110/239] shrink-0 overflow-hidden rounded-[1.5rem] border-2 border-black bg-white shadow-[0_12px_28px_rgba(15,23,42,0.16)] ${
+                          pillar.imageLayout === "health"
+                            ? "w-[64vw] max-w-[230px] sm:w-48 lg:w-full lg:max-w-[210px]"
+                            : pillar.imageLayout === "single"
+                              ? "w-[72vw] max-w-[310px] sm:w-[300px] lg:w-[290px]"
+                              : "w-[68vw] max-w-[260px] sm:w-44 lg:w-full lg:max-w-none"
+                        }`}
                       >
                         <Image
-                          src={src}
-                          alt={`${pillar.title} app screen ${index + 1}`}
+                          src={image.src}
+                          alt={image.alt}
                           fill
-                          sizes="(min-width: 1024px) 11rem, 9rem"
+                          sizes={
+                            pillar.imageLayout === "health"
+                              ? "(min-width: 1024px) 13rem, (min-width: 640px) 12rem, 64vw"
+                              : pillar.imageLayout === "single"
+                                ? "(min-width: 1024px) 18rem, (min-width: 640px) 18.75rem, 72vw"
+                                : "(min-width: 1024px) 11rem, (min-width: 640px) 11rem, 68vw"
+                          }
                           className="object-cover"
                         />
                       </div>
