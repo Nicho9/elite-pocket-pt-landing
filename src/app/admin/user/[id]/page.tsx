@@ -42,6 +42,14 @@ type WorkoutExerciseLog = {
   skipped?: boolean | null;
 };
 
+type WorkoutSetResult = {
+  setNumber: number;
+  primaryValue: string | null;
+  primaryLabel: "Reps" | "Distance" | "Time";
+  weight: string | null;
+  rpe: string | null;
+};
+
 type NutritionLog = {
   date: string | null;
   calories: number | string | null;
@@ -639,6 +647,278 @@ function getActualResultSummary(actualResult: unknown) {
   }
 
   return formatValue(String(actualResult));
+}
+
+function getStructuredSetSource(actualResult: unknown): unknown[] {
+  if (!actualResult) {
+    return [];
+  }
+
+  if (typeof actualResult === "string") {
+    const trimmedResult = actualResult.trim();
+
+    if (!trimmedResult) {
+      return [];
+    }
+
+    if (trimmedResult.startsWith("sets:")) {
+      try {
+        const parsedSets = JSON.parse(trimmedResult.slice("sets:".length).trim());
+
+        return Array.isArray(parsedSets) ? parsedSets : [];
+      } catch {
+        return [];
+      }
+    }
+
+    if (trimmedResult.startsWith("[") || trimmedResult.startsWith("{")) {
+      try {
+        return getStructuredSetSource(JSON.parse(trimmedResult));
+      } catch {
+        return [];
+      }
+    }
+
+    return [];
+  }
+
+  if (Array.isArray(actualResult)) {
+    return actualResult;
+  }
+
+  if (typeof actualResult !== "object") {
+    return [];
+  }
+
+  const resultRecord = actualResult as Record<string, unknown>;
+  const possibleSets = [
+    resultRecord.sets,
+    resultRecord.completed_sets,
+    resultRecord.actual_sets,
+    resultRecord.results,
+  ];
+
+  for (const possibleSet of possibleSets) {
+    if (Array.isArray(possibleSet)) {
+      return possibleSet;
+    }
+  }
+
+  return getStructuredSetSource(resultRecord.summary);
+}
+
+function getLoggedSetValue(record: Record<string, unknown>, keys: string[]) {
+  for (const key of keys) {
+    const value = getReadableJsonValue(record[key]);
+
+    if (value !== null) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
+function getStructuredWorkoutSets(actualResult: unknown): WorkoutSetResult[] {
+  return getStructuredSetSource(actualResult).flatMap((set, index) => {
+    if (!set || typeof set !== "object" || Array.isArray(set)) {
+      return [];
+    }
+
+    const record = set as Record<string, unknown>;
+    const distance = getLoggedSetValue(record, [
+      "distance",
+      "distance_m",
+      "distance_km",
+      "actual_distance",
+    ]);
+    const time = getLoggedSetValue(record, [
+      "time",
+      "duration",
+      "duration_seconds",
+      "time_seconds",
+      "actual_time",
+    ]);
+    const reps = getLoggedSetValue(record, ["reps", "actual_reps", "firstFieldValue"]);
+    const primaryLabel = distance ? "Distance" : time ? "Time" : "Reps";
+    const primaryValue = distance || time || reps;
+    const weight = getLoggedSetValue(record, [
+      "weight_kg",
+      "weight",
+      "load_kg",
+      "load",
+      "actual_weight",
+      "actualWeight",
+      "actual_load",
+    ]);
+    const rpe = getLoggedSetValue(record, ["rpe", "actual_rpe", "actualRpe"]);
+
+    if (primaryValue === null && weight === null && rpe === null && record.done !== true) {
+      return [];
+    }
+
+    return [
+      {
+        setNumber: index + 1,
+        primaryValue,
+        primaryLabel,
+        weight,
+        rpe,
+      },
+    ];
+  });
+}
+
+function formatWorkoutWeight(value: string | null) {
+  if (!value) {
+    return "—";
+  }
+
+  return /[a-zA-Z]/.test(value) ? value : `${value} kg`;
+}
+
+function titleCaseWorkoutLabel(value: string | null) {
+  return formatStatusLabel(value);
+}
+
+function getExerciseStatus(exercise: WorkoutExerciseLog) {
+  if (exercise.completed) {
+    return {
+      label: "Completed",
+      icon: "check",
+      className: "bg-[#16A34A] text-white",
+    };
+  }
+
+  if (exercise.skipped) {
+    return {
+      label: "Skipped",
+      icon: "minus",
+      className: "bg-[#E5E7EB] text-[#374151]",
+    };
+  }
+
+  return {
+    label: "Not completed",
+    icon: "info",
+    className: "bg-[#FFF3D8] text-[#B45309]",
+  };
+}
+
+function WorkoutStatusIcon({ icon }: { icon: string }) {
+  if (icon === "check") {
+    return (
+      <svg aria-hidden="true" className="h-3.5 w-3.5" fill="none" viewBox="0 0 20 20">
+        <path d="m4.5 10 3.4 3.4 7.6-7.6" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.4" />
+      </svg>
+    );
+  }
+
+  if (icon === "minus") {
+    return (
+      <svg aria-hidden="true" className="h-3.5 w-3.5" fill="none" viewBox="0 0 20 20">
+        <path d="M5 10h10" stroke="currentColor" strokeLinecap="round" strokeWidth="2.4" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg aria-hidden="true" className="h-3.5 w-3.5" fill="none" viewBox="0 0 20 20">
+      <circle cx="10" cy="10" r="7" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M10 9v4M10 6.5v.2" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
+    </svg>
+  );
+}
+
+function WorkoutBlockIcon() {
+  return (
+    <svg aria-hidden="true" className="h-5 w-5" fill="none" viewBox="0 0 24 24">
+      <path d="M5 9v6M8 7v10M16 7v10M19 9v6M8 12h8M3.5 10v4M20.5 10v4" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.9" />
+    </svg>
+  );
+}
+
+function WorkoutExerciseThumbnail() {
+  return (
+    <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-[18px] border border-[#D9E5F7] bg-gradient-to-br from-[#EEF4FF] via-white to-[#E3EDFF] text-[#1157D8] shadow-[0_8px_20px_rgba(17,87,216,0.08)] sm:h-[104px] sm:w-[104px]">
+      <svg aria-hidden="true" className="h-8 w-8" fill="none" viewBox="0 0 24 24">
+        <path d="M5 9v6M8 7v10M16 7v10M19 9v6M8 12h8M3.5 10v4M20.5 10v4" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+      </svg>
+    </div>
+  );
+}
+
+function CompletedSetResultTable({ sets }: { sets: WorkoutSetResult[] }) {
+  const primaryLabel = sets.find((set) => set.primaryValue)?.primaryLabel || "Reps";
+  const showPrimary = sets.some((set) => set.primaryValue !== null);
+  const showWeight = sets.some((set) => set.weight !== null);
+  const showRpe = sets.some((set) => set.rpe !== null);
+
+  if (!showPrimary && !showWeight && !showRpe) {
+    return null;
+  }
+
+  return (
+    <div className="mt-4 overflow-hidden rounded-2xl border border-[#DCE7F5] bg-[#F5F8FD]">
+      <div className="grid grid-flow-col auto-cols-fr items-center border-b border-[#DCE7F5] px-3 py-2.5 text-center text-[11px] font-bold uppercase tracking-[0.12em] text-[#6B7280]">
+        <span>Set</span>
+        {showPrimary && <span>{primaryLabel}</span>}
+        {showWeight && <span>Weight</span>}
+        {showRpe && <span>RPE</span>}
+      </div>
+      {sets.map((set, index) => (
+        <div
+          key={`${set.setNumber}-${index}`}
+          className="grid grid-flow-col auto-cols-fr items-center px-3 py-3 text-center text-sm font-bold text-[#0B1220] [&:not(:last-child)]:border-b [&:not(:last-child)]:border-[#E6EDF7]"
+        >
+          <span>{set.setNumber}</span>
+          {showPrimary && <span>{set.primaryValue || "—"}</span>}
+          {showWeight && <span>{formatWorkoutWeight(set.weight)}</span>}
+          {showRpe && <span>{set.rpe || "—"}</span>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function CompletedWorkoutExerciseCard({ exercise }: { exercise: WorkoutExerciseLog }) {
+  const status = getExerciseStatus(exercise);
+  const sets = getStructuredWorkoutSets(exercise.actual_result);
+  const actualSummary = getActualResultSummary(exercise.actual_result);
+
+  return (
+    <article className="rounded-3xl border border-[#DDE7F3] bg-gradient-to-br from-white via-white to-[#F7FAFF] p-4 shadow-[0_10px_26px_rgba(11,18,32,0.055)] sm:p-5">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+        <WorkoutExerciseThumbnail />
+        <div className="min-w-0 flex-1">
+          <h5 className="text-base font-extrabold leading-tight text-[#0B1220] sm:text-lg">
+            {formatValue(exercise.display_name)}
+          </h5>
+          <span className={`mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-extrabold ${status.className}`}>
+            <WorkoutStatusIcon icon={status.icon} />
+            {status.label}
+          </span>
+          <p className="mt-2 text-sm font-semibold leading-5 text-[#6B7280]">
+            {getPrescribedExerciseSummary(exercise)}
+          </p>
+          <p className="mt-2 text-xs font-extrabold uppercase tracking-[0.14em] text-[#1157D8]">
+            {titleCaseWorkoutLabel(exercise.block_type)}
+          </p>
+        </div>
+      </div>
+
+      {sets.length > 0 ? (
+        <CompletedSetResultTable sets={sets} />
+      ) : actualSummary !== "No result logged" ? (
+        <div className="mt-4 rounded-2xl border border-[#DCE7F5] bg-[#F5F8FD] px-4 py-3">
+          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#6B7280]">
+            Result
+          </p>
+          <p className="mt-1 text-sm font-bold leading-5 text-[#0B1220]">{actualSummary}</p>
+        </div>
+      ) : null}
+    </article>
+  );
 }
 
 function StatusPill({ label, value }: { label: string; value: string | boolean | null }) {
@@ -1558,7 +1838,7 @@ export default function AdminUserPage() {
                         return (
                           <article
                             key={session.id || `${session.session_date || "session"}-${index}`}
-                            className="rounded-2xl border border-[#E5E7EB] bg-white p-4 transition hover:border-[#1157D8]"
+                            className={`rounded-2xl border border-[#E5E7EB] bg-white p-4 transition hover:border-[#1157D8] ${isExpanded ? "md:col-span-2" : ""}`}
                           >
                             <button
                               type="button"
@@ -1646,48 +1926,29 @@ export default function AdminUserPage() {
                                 )}
 
                                 {!isLoadingExercises && !exercisesError && exercises.length > 0 && (
-                                  <div className="mt-4 space-y-4">
+                                  <div className="mt-5 space-y-7">
                                     {groupWorkoutExercisesByBlock(exercises).map(
                                       ([block, blockExercises]) => (
-                                        <div
-                                          key={block}
-                                          className="rounded-2xl border border-[#E5E7EB] bg-[#F8FAFC] p-4"
-                                        >
-                                          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#1157D8]">
-                                            {block}
-                                          </p>
+                                        <section key={block}>
+                                          <div className="flex items-center gap-3">
+                                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[13px] border border-[#CFE0FA] bg-[#EAF1FF] text-[#1157D8] shadow-[0_6px_16px_rgba(17,87,216,0.1)]">
+                                              <WorkoutBlockIcon />
+                                            </span>
+                                            <h5 className="shrink-0 text-base font-extrabold text-[#0B1220]">
+                                              {titleCaseWorkoutLabel(block)}
+                                            </h5>
+                                            <div className="h-px min-w-6 flex-1 bg-[#DCE5F1]" />
+                                          </div>
 
-                                          <div className="mt-3 space-y-3">
+                                          <div className="mt-4 space-y-4">
                                             {blockExercises.map((exercise, exerciseIndex) => (
-                                              <div
+                                              <CompletedWorkoutExerciseCard
                                                 key={`${exercise.display_name || "exercise"}-${exerciseIndex}`}
-                                                className="rounded-2xl border border-[#E5E7EB] bg-white p-4"
-                                              >
-                                                <h5 className="text-sm font-bold text-[#0B1220]">
-                                                  {formatValue(exercise.display_name)}
-                                                </h5>
-                                                <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                                                  <div>
-                                                    <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#6B7280]">
-                                                      Prescribed
-                                                    </p>
-                                                    <p className="mt-1 text-sm font-semibold text-[#0B1220]">
-                                                      {getPrescribedExerciseSummary(exercise)}
-                                                    </p>
-                                                  </div>
-                                                  <div>
-                                                    <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#6B7280]">
-                                                      Actual
-                                                    </p>
-                                                    <p className="mt-1 text-sm font-semibold leading-6 text-[#0B1220]">
-                                                      {getActualResultSummary(exercise.actual_result)}
-                                                    </p>
-                                                  </div>
-                                                </div>
-                                              </div>
+                                                exercise={exercise}
+                                              />
                                             ))}
                                           </div>
-                                        </div>
+                                        </section>
                                       ),
                                     )}
                                   </div>
