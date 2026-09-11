@@ -487,32 +487,40 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="mx-auto mt-10 grid max-w-7xl gap-y-10 lg:grid-cols-4 lg:gap-x-5 lg:gap-y-0">
+          <div className="mx-auto mt-10 grid max-w-7xl gap-y-10 xl:grid-cols-4 xl:gap-x-5 xl:gap-y-0">
             {[
               {
                 title: "Training",
                 terms: ["Structured programmes", "Progressive training", "Training load", "RPE & session feedback"],
                 trace: "left-[12%] top-0 w-16",
+                image: "/ep-training-card.png",
+                alt: "Elite Pocket PT training screen",
               },
               {
                 title: "Nutrition",
                 terms: ["Personalised targets", "Food logging", "Meal planning", "Fuel for performance"],
                 trace: "right-[14%] top-0 w-12",
+                image: "/ep-nutrition-card.png",
+                alt: "Elite Pocket PT nutrition screen",
               },
               {
                 title: "Health & Recovery",
                 terms: ["Sleep", "HRV", "Daily activity", "Recovery trends"],
                 trace: "bottom-0 left-[18%] w-14",
+                image: "/ep-health-recovery-card.png",
+                alt: "Elite Pocket PT health and recovery screen",
               },
               {
                 title: "Performance",
                 terms: ["Elite Readiness", "Health Age", "Elite Balance", "Mobility & progress"],
                 trace: "bottom-0 right-[12%] w-12",
+                image: "/ep-performance-card.png",
+                alt: "Elite Pocket PT performance screen",
               },
             ].map((area, index, areas) => (
               <article
                 key={area.title}
-                className="relative flex min-h-[226px] flex-col items-center justify-center overflow-visible rounded-[1.6rem] border border-[#4D8BEE]/35 bg-[linear-gradient(145deg,#111923_0%,#0B1220_100%)] px-6 py-7 text-center shadow-[0_18px_42px_rgba(15,23,42,0.18),0_0_26px_rgba(17,87,216,0.24)] sm:min-h-[236px] sm:px-7 lg:min-h-[248px] lg:px-6"
+                className="relative h-[300px] overflow-visible rounded-[1.6rem] border border-[#4D8BEE]/35 bg-[linear-gradient(145deg,#111923_0%,#0B1220_100%)] px-6 py-7 shadow-[0_18px_42px_rgba(15,23,42,0.18),0_0_26px_rgba(17,87,216,0.24)] sm:h-[330px] sm:px-7 xl:h-[326px] xl:px-6"
               >
                 <span
                   aria-hidden="true"
@@ -530,24 +538,40 @@ export default function Home() {
                 {index < areas.length - 1 && (
                   <span
                     aria-hidden="true"
-                    className="pointer-events-none absolute bottom-[-2.5rem] left-1/2 h-4 w-5 -translate-x-1/2 lg:bottom-auto lg:left-auto lg:right-[-1.25rem] lg:top-1/2 lg:h-5 lg:w-5 lg:-translate-y-1/2 lg:translate-x-0"
+                    className="pointer-events-none absolute bottom-[-2.5rem] left-1/2 h-4 w-5 -translate-x-1/2 xl:bottom-auto xl:left-auto xl:right-[-1.25rem] xl:top-1/2 xl:h-5 xl:w-5 xl:-translate-y-1/2 xl:translate-x-0"
                   >
-                    <span className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-[linear-gradient(180deg,transparent,#60A5FA_24%,#3B82F6_58%,transparent)] shadow-[0_0_10px_rgba(59,130,246,0.78)] lg:left-0 lg:top-1/2 lg:h-px lg:w-full lg:-translate-y-1/2 lg:translate-x-0 lg:bg-[linear-gradient(90deg,transparent,#60A5FA_24%,#3B82F6_58%,transparent)]" />
-                    <span className="absolute left-1/2 top-[38%] h-1 w-1 -translate-x-1/2 rounded-full bg-[#BFDBFE] shadow-[0_0_8px_rgba(96,165,250,1)] lg:left-[38%] lg:top-1/2 lg:-translate-y-1/2 lg:translate-x-0" />
+                    <span className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-[linear-gradient(180deg,transparent,#60A5FA_24%,#3B82F6_58%,transparent)] shadow-[0_0_10px_rgba(59,130,246,0.78)] xl:left-0 xl:top-1/2 xl:h-px xl:w-full xl:-translate-y-1/2 xl:translate-x-0 xl:bg-[linear-gradient(90deg,transparent,#60A5FA_24%,#3B82F6_58%,transparent)]" />
+                    <span className="absolute left-1/2 top-[38%] h-1 w-1 -translate-x-1/2 rounded-full bg-[#BFDBFE] shadow-[0_0_8px_rgba(96,165,250,1)] xl:left-[38%] xl:top-1/2 xl:-translate-y-1/2 xl:translate-x-0" />
                   </span>
                 )}
 
-                <h3 className="relative text-xl font-bold tracking-tight text-white">
-                  {area.title}
-                </h3>
-                <ul className="relative mt-5 inline-flex flex-col items-start gap-2.5 text-left text-sm font-semibold leading-5 text-white/70">
-                  {area.terms.map((term) => (
-                    <li key={term} className="flex items-center gap-2.5">
-                      <span aria-hidden="true" className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#3B82F6] shadow-[0_0_7px_rgba(59,130,246,0.9)]" />
-                      <span>{term}</span>
-                    </li>
-                  ))}
-                </ul>
+                <div className="relative grid h-full grid-cols-[1.2fr_0.8fr] items-center gap-2.5 sm:grid-cols-[1.08fr_0.92fr] sm:gap-4">
+                  <div className="min-w-0">
+                    <h3 className="text-xl font-bold tracking-tight text-white">
+                      {area.title}
+                    </h3>
+                    <ul className="mt-5 flex flex-col items-start gap-2.5 text-left text-sm font-semibold leading-5 text-white/70">
+                      {area.terms.map((term) => (
+                        <li key={term} className="flex items-center gap-2.5">
+                          <span aria-hidden="true" className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#3B82F6] shadow-[0_0_7px_rgba(59,130,246,0.9)]" />
+                          <span>{term}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="flex h-full items-center justify-center">
+                    <div className="relative h-[210px] w-[97px] overflow-hidden rounded-[1.25rem] border border-white/15 bg-[#070A0E] shadow-[0_14px_28px_rgba(0,0,0,0.35),0_0_18px_rgba(17,87,216,0.16)] sm:h-[248px] sm:w-[114px] xl:h-[248px] xl:w-[114px]">
+                      <Image
+                        src={area.image}
+                        alt={area.alt}
+                        fill
+                        sizes="(min-width: 1280px) 114px, (min-width: 640px) 114px, 101px"
+                        className="object-contain"
+                      />
+                    </div>
+                  </div>
+                </div>
               </article>
             ))}
           </div>
