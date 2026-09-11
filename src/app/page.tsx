@@ -26,7 +26,8 @@ const systemPillars: SystemPillar[] = [
     bullets: [
       "Programme generator based on your level, schedule and goals",
       "Built across Base, Build and Perform phases",
-      "Strength assessment to tailor all working weights",
+      "Completed sessions, weights, sets, reps and progression in one training history",
+      "Strength assessment, training load and workout feedback to guide your next steps",
     ],
     images: [
       { src: "/hero/workout-pageV2.png", alt: "Elite Pocket PT workout programme screen" },
@@ -40,7 +41,7 @@ const systemPillars: SystemPillar[] = [
     title: "Nutrition",
     headline: "Practical nutrition that fits your lifestyle",
     bullets: [
-      "Personalised meal plans based on goals and preferences",
+      "Personalised nutrition targets and meal plans based on goals and preferences",
       "Flexible logging: photo, voice, database or meal plan",
       "Built around training demands and real-world habits",
     ],
@@ -54,11 +55,11 @@ const systemPillars: SystemPillar[] = [
   },
   {
     title: "Elite Health",
-    headline: "Know how ready, recovered and healthy you are",
+    headline: "Understand more than today’s workout",
     bullets: [
-      "Your Elite Readiness Score combines the signals that matter each day",
-      "Track sleep, recovery, Health Age and overall health trends",
-      "Turn wearable and health data into clear, actionable insight",
+      "Follow recovery, sleep and health trends alongside your performance",
+      "Track Health Age and Elite Balance to understand the bigger picture",
+      "See the health context behind your performance, including Elite Readiness",
     ],
     images: [
       { src: "/hero/health-dashboardV2.png", alt: "Elite Pocket PT Health dashboard" },
@@ -72,11 +73,11 @@ const systemPillars: SystemPillar[] = [
   },
   {
     title: "Your Diary",
-    headline: "Everything you need today, in one place",
+    headline: "Your daily command centre",
     bullets: [
-      "See today’s training, nutrition and health status at a glance",
-      "Know exactly what needs your attention without jumping between screens",
-      "Your daily view brings the Elite Pocket PT system together",
+      "Everything you need today, in one place",
+      "Training. Nutrition. Health. Recovery. Progress.",
+      "Know what needs your attention without jumping between screens",
     ],
     images: [
       { src: "/hero/Home-PageV2.PNG", alt: "Daily Elite Pocket PT diary and home screen" },
@@ -267,7 +268,7 @@ export default function Home() {
             <a href="#how-it-works" className="transition hover:text-[#1157D8]">
               How It Works
             </a>
-            <a href="#system" className="transition hover:text-[#1157D8]">
+            <a href="#integrated-system" className="transition hover:text-[#1157D8]">
               System
             </a>
             <a href="#pricing" className="transition hover:text-[#1157D8]">
@@ -351,7 +352,7 @@ export default function Home() {
               How It Works
             </a>
             <a
-              href="#system"
+              href="#integrated-system"
               onClick={() => setMobileMenuOpen(false)}
               className="rounded-2xl px-4 py-4 transition hover:bg-[#F5F7FB] hover:text-[#1157D8]"
             >
@@ -390,55 +391,254 @@ export default function Home() {
       </div>
 
       <main className="min-h-screen bg-[#F5F7FB] text-[#111827]">
-      <section className="bg-[#080A0D] px-5 pb-4 pt-24 text-white">
+      <section className="bg-[#080A0D] px-5 pb-12 pt-24 text-white lg:pb-16">
         <div className="mx-auto w-full max-w-7xl">
-          <Image
-            src="/elite-pocket-pt-hero-overlay-cropped.png"
-            alt="Elite Pocket PT — The easiest way to reach your goals."
-            width={954}
-            height={308}
-            className="mb-5 h-auto w-[90%] max-w-[32rem] sm:mb-7 sm:w-[32rem]"
-          />
-          <div className="relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-[#111418] shadow-[0_28px_90px_rgba(0,0,0,0.42)]">
-            <video
-              ref={heroVideoRef}
-              poster="/hero/landing-hero-poster.jpg"
-              autoPlay
-              muted={!soundEnabled}
-              loop
-              playsInline
-              className="aspect-[16/9] w-full object-cover"
-            >
-              <source
-                src="/hero/landing-hero-video-mobile.mp4"
-                media="(max-width: 767px)"
-                type="video/mp4"
+          <div className="grid items-center gap-9 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.3fr)] lg:gap-12">
+            <div className="max-w-xl lg:py-6">
+              <Image
+                src="/elite-pocket-pt-hero-overlay-cropped.png"
+                alt="Elite Pocket PT"
+                width={954}
+                height={308}
+                className="h-auto w-64 opacity-90 sm:w-72 lg:w-80"
               />
-              <source src="/hero/landing-hero-video.mp4" type="video/mp4" />
-            </video>
-            <button
-              type="button"
-              onClick={handleToggleHeroSound}
-              aria-label={soundEnabled ? "Mute hero video" : "Play hero video sound"}
-              className="absolute bottom-5 right-5 z-20 flex size-11 items-center justify-center rounded-full border border-white/10 bg-black/45 text-white backdrop-blur-md transition hover:bg-black/60 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#1157D8]/30 sm:size-12"
-            >
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 24 24"
-                className="size-5 sm:size-6"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
+              <h1 className="mt-5 text-3xl font-bold leading-[1.12] tracking-tight text-white sm:text-[2.15rem] lg:text-[clamp(2rem,2.2vw,2.15rem)]">
+                <span className="block">TRAIN. EAT. RECOVER. PROGRESS.</span>
+                <span className="mt-1 block">ALL IN ONE SYSTEM.</span>
+              </h1>
+              <p className="mt-5 max-w-lg text-base font-medium leading-7 text-white/72 sm:text-lg">
+                Elite Pocket PT connects your training, nutrition, health and recovery so every part of your performance works together.
+              </p>
+              <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
+                <a
+                  href={appleFreeTrialHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex min-h-14 items-center justify-center rounded-full border border-[#8DBBFF]/50 bg-[linear-gradient(180deg,#1D6AE5_0%,#1157D8_100%)] px-7 py-3.5 text-sm font-extrabold tracking-[0.06em] text-white shadow-[0_16px_42px_rgba(17,87,216,0.42),inset_0_1px_0_rgba(255,255,255,0.2)] transition duration-200 hover:-translate-y-1 hover:brightness-110 active:translate-y-0 sm:text-base"
+                >
+                  START YOUR FREE TRIAL
+                </a>
+                <a
+                  href="#integrated-system"
+                  className="inline-flex min-h-14 items-center justify-center rounded-full border border-white/20 bg-white/5 px-7 py-3.5 text-sm font-bold tracking-[0.06em] text-white transition hover:border-[#8DBBFF]/60 hover:bg-white/10 sm:text-base"
+                >
+                  EXPLORE THE SYSTEM
+                </a>
+              </div>
+            </div>
+            <div className="relative overflow-hidden rounded-[2rem] bg-[#111418] shadow-[0_32px_100px_rgba(0,0,0,0.46)] ring-1 ring-white/[0.06] lg:-mr-4">
+              <video
+                ref={heroVideoRef}
+                poster="/hero/landing-hero-poster.jpg"
+                autoPlay
+                muted={!soundEnabled}
+                loop
+                playsInline
+                className="aspect-[16/9] w-full object-cover"
               >
-                <path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z" />
-                <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                <path d="M12 19v3" />
-                <path d="M8 22h8" />
-                {!soundEnabled && <path d="M4 4l16 16" />}
-              </svg>
-            </button>
+                <source
+                  src="/hero/landing-hero-video-mobile.mp4"
+                  media="(max-width: 767px)"
+                  type="video/mp4"
+                />
+                <source src="/hero/landing-hero-video.mp4" type="video/mp4" />
+              </video>
+              <button
+                type="button"
+                onClick={handleToggleHeroSound}
+                aria-label={soundEnabled ? "Mute hero video" : "Play hero video sound"}
+                className="absolute bottom-5 right-5 z-20 flex size-11 items-center justify-center rounded-full border border-white/10 bg-black/45 text-white backdrop-blur-md transition hover:bg-black/60 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#1157D8]/30 sm:size-12"
+              >
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  className="size-5 sm:size-6"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z" />
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                  <path d="M12 19v3" />
+                  <path d="M8 22h8" />
+                  {!soundEnabled && <path d="M4 4l16 16" />}
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="integrated-system" className="scroll-mt-24 bg-[linear-gradient(180deg,#F5F7FB_0%,#EEF5FF_52%,#F5F7FB_100%)] px-5 py-20">
+        <div className="mx-auto max-w-7xl">
+          <div className="mx-auto max-w-3xl text-center">
+            <p className="text-sm font-bold uppercase tracking-[0.22em] text-[#1157D8]">
+              Complete performance system
+            </p>
+            <h2 className="mt-4 text-3xl font-bold tracking-tight text-[#0B1220] sm:text-4xl lg:text-5xl">
+              ONE SYSTEM.
+              <br />
+              EVERYTHING CONNECTED.
+            </h2>
+            <p className="mt-5 text-lg font-medium leading-8 text-[#4B5563]">
+              Training, nutrition, health and recovery working together — so your plan reflects the whole picture, not one isolated metric.
+            </p>
+          </div>
+
+          <div className="mx-auto mt-10 grid max-w-7xl gap-y-10 lg:grid-cols-4 lg:gap-x-5 lg:gap-y-0">
+            {[
+              {
+                title: "Training",
+                terms: ["Structured programmes", "Progressive training", "Training load", "RPE & session feedback"],
+                trace: "left-[12%] top-0 w-16",
+              },
+              {
+                title: "Nutrition",
+                terms: ["Personalised targets", "Food logging", "Meal planning", "Fuel for performance"],
+                trace: "right-[14%] top-0 w-12",
+              },
+              {
+                title: "Health & Recovery",
+                terms: ["Sleep", "HRV", "Daily activity", "Recovery trends"],
+                trace: "bottom-0 left-[18%] w-14",
+              },
+              {
+                title: "Performance",
+                terms: ["Elite Readiness", "Health Age", "Elite Balance", "Mobility & progress"],
+                trace: "bottom-0 right-[12%] w-12",
+              },
+            ].map((area, index, areas) => (
+              <article
+                key={area.title}
+                className="relative flex min-h-[226px] flex-col items-center justify-center overflow-visible rounded-[1.6rem] border border-[#4D8BEE]/35 bg-[linear-gradient(145deg,#111923_0%,#0B1220_100%)] px-6 py-7 text-center shadow-[0_18px_42px_rgba(15,23,42,0.18),0_0_26px_rgba(17,87,216,0.24)] sm:min-h-[236px] sm:px-7 lg:min-h-[248px] lg:px-6"
+              >
+                <span
+                  aria-hidden="true"
+                  className={`pointer-events-none absolute ${area.trace} h-px bg-[linear-gradient(90deg,transparent,#3B82F6,transparent)] opacity-75 shadow-[0_0_12px_rgba(59,130,246,0.65)]`}
+                />
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute bottom-[18%] left-0 h-9 w-px bg-[linear-gradient(180deg,transparent,#60A5FA,transparent)] opacity-45 shadow-[0_0_10px_rgba(96,165,250,0.5)]"
+                />
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute right-0 top-[28%] h-7 w-px bg-[linear-gradient(180deg,transparent,#3B82F6,transparent)] opacity-50 shadow-[0_0_10px_rgba(59,130,246,0.5)]"
+                />
+
+                {index < areas.length - 1 && (
+                  <span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute bottom-[-2.5rem] left-1/2 h-4 w-5 -translate-x-1/2 lg:bottom-auto lg:left-auto lg:right-[-1.25rem] lg:top-1/2 lg:h-5 lg:w-5 lg:-translate-y-1/2 lg:translate-x-0"
+                  >
+                    <span className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-[linear-gradient(180deg,transparent,#60A5FA_24%,#3B82F6_58%,transparent)] shadow-[0_0_10px_rgba(59,130,246,0.78)] lg:left-0 lg:top-1/2 lg:h-px lg:w-full lg:-translate-y-1/2 lg:translate-x-0 lg:bg-[linear-gradient(90deg,transparent,#60A5FA_24%,#3B82F6_58%,transparent)]" />
+                    <span className="absolute left-1/2 top-[38%] h-1 w-1 -translate-x-1/2 rounded-full bg-[#BFDBFE] shadow-[0_0_8px_rgba(96,165,250,1)] lg:left-[38%] lg:top-1/2 lg:-translate-y-1/2 lg:translate-x-0" />
+                  </span>
+                )}
+
+                <h3 className="relative text-xl font-bold tracking-tight text-white">
+                  {area.title}
+                </h3>
+                <ul className="relative mt-5 inline-flex flex-col items-start gap-2.5 text-left text-sm font-semibold leading-5 text-white/70">
+                  {area.terms.map((term) => (
+                    <li key={term} className="flex items-center gap-2.5">
+                      <span aria-hidden="true" className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#3B82F6] shadow-[0_0_7px_rgba(59,130,246,0.9)]" />
+                      <span>{term}</span>
+                    </li>
+                  ))}
+                </ul>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="overflow-hidden bg-[#0B1220] px-5 py-20 text-white">
+        <div className="mx-auto max-w-7xl">
+          <div className="mx-auto max-w-4xl text-center">
+            <p className="text-sm font-bold uppercase tracking-[0.22em] text-[#9BC4FF]">Elite Readiness</p>
+            <h2 className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl">
+              YOUR DATA SHOULD CHANGE SOMETHING.
+            </h2>
+            <p className="mx-auto mt-5 max-w-3xl text-lg font-medium leading-8 text-[#D7E4FF]">
+              Your wearable can tell you what happened. Elite Pocket PT combines that health and recovery data with what you&apos;ve actually been doing — your training, load, RPE and nutrition.
+            </p>
+          </div>
+
+          <div className="mx-auto mt-12 grid max-w-5xl justify-items-center gap-7 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">
+            {[
+              {
+                label: "Recover",
+                copy: "Your recovery and recent load suggest pulling back today.",
+                image: "/hero/elite-readiness-red.png",
+                alt: "Elite Readiness red state",
+                accent: "text-[#F87171]",
+                surface: "border-[#EF4444]/45",
+                glow: "shadow-[0_20px_52px_rgba(239,68,68,0.12)]",
+              },
+              {
+                label: "Reduced",
+                copy: "You can still train, but today’s plan should reflect your current readiness.",
+                image: "/hero/elite-readiness-orange.png",
+                alt: "Elite Readiness orange state",
+                accent: "text-[#FB923C]",
+                surface: "border-[#F97316]/45",
+                glow: "shadow-[0_20px_52px_rgba(249,115,22,0.12)]",
+              },
+              {
+                label: "Primed",
+                copy: "Recovery and recent training context support pushing ahead today.",
+                image: "/hero/elite-readiness-green-v2.png",
+                alt: "Elite Readiness primed state",
+                accent: "text-[#4ADE80]",
+                surface: "border-[#22C55E]/45",
+                glow: "shadow-[0_20px_52px_rgba(34,197,94,0.12)]",
+              },
+            ].map((state) => (
+              <article
+                key={state.label}
+                className={`flex h-full w-full max-w-sm flex-col overflow-hidden rounded-[2rem] border bg-[#10151C] p-4 lg:max-w-[18rem] ${state.surface} ${state.glow}`}
+              >
+                <div className="overflow-hidden rounded-[1.5rem] bg-[#090D13]">
+                  <Image
+                    src={state.image}
+                    alt={state.alt}
+                    width={1080}
+                    height={1350}
+                    sizes="(min-width: 1024px) 16rem, (min-width: 640px) 42vw, 90vw"
+                    className="h-auto w-full"
+                  />
+                </div>
+                <div className="px-3 pb-3 pt-6 sm:px-4">
+                  <p className={`text-sm font-bold uppercase tracking-[0.22em] ${state.accent}`}>
+                    {state.label}
+                  </p>
+                  <p className="mt-3 text-base font-medium leading-7 text-white/74">
+                    {state.copy}
+                  </p>
+                </div>
+              </article>
+            ))}
+          </div>
+
+          <div className="mx-auto mt-14 max-w-3xl text-center">
+            <h3 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
+              KNOW WHAT YOUR BODY IS READY FOR TODAY.
+            </h3>
+            <p className="mt-4 text-lg font-medium text-[#D7E4FF]">
+              The point isn&apos;t another score. It&apos;s knowing what to do with it.
+            </p>
+            <div className="mt-7 flex flex-wrap justify-center gap-2.5">
+              {['TRAIN', 'RECOVER', 'FUEL', 'ADJUST'].map((outcome) => (
+                <span
+                  key={outcome}
+                  className="rounded-full border border-[#6EA8FF]/30 bg-white/[0.06] px-4 py-2 text-xs font-bold tracking-[0.18em] text-[#D7E4FF]"
+                >
+                  {outcome}
+                </span>
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -584,7 +784,7 @@ export default function Home() {
               How It Works
             </h2>
             <p className="mt-4 text-lg font-medium text-[#4B5563]">
-              A simple system you follow every day
+              A simple way to set up, use and get the most from your complete performance system.
             </p>
           </div>
 
@@ -639,7 +839,7 @@ export default function Home() {
               The Elite Pocket PT System
             </h2>
             <p className="mt-4 text-lg font-medium text-[#4B5563]">
-              Built by Coach Mike Nicholson (M.Sc Sports Nutrition, PGCE, BA Hons)
+              You&apos;ve seen how the system works together. Now explore what&apos;s inside it.
             </p>
           </div>
 
@@ -738,7 +938,7 @@ export default function Home() {
               Meet Coach Mike
             </h2>
             <p className="mt-4 max-w-3xl text-lg font-medium text-[#4B5563]">
-              The Elite Pocket PT system is built from real coaching experience — not generic programming.
+              A complete performance system built from real coaching methodology and practical experience.
             </p>
             <div className="mt-8 space-y-5 text-base font-medium text-[#4B5563]">
               <div>
@@ -884,7 +1084,7 @@ export default function Home() {
                 title: "Full App Access",
                 price: "$39",
                 smallText:
-                  "The complete Elite Pocket PT system for athletes who want structured training, nutrition, mobility, progress tracking, coaching feedback, and community support in one place.",
+                  "Complete access to the integrated Elite Pocket PT performance system: training, nutrition, health, recovery, mobility, progress, coaching feedback and community in one place.",
                 includes: [
                   "Training",
                   "Nutrition",
