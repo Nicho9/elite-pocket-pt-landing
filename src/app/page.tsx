@@ -578,6 +578,61 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="bg-[#F5F7FB] px-5 pb-20">
+        <div className="mx-auto max-w-7xl">
+          <Link
+            href="/elite-band"
+            aria-label="Discover Elite Band, coming soon"
+            className="group relative block overflow-hidden rounded-[2rem] border border-[#4D8BEE]/35 bg-[linear-gradient(135deg,#0B1220_0%,#101B31_52%,#061B45_100%)] p-6 shadow-[0_28px_80px_rgba(15,23,42,0.3),0_0_42px_rgba(17,87,216,0.18)] transition duration-300 hover:-translate-y-1 hover:border-[#8DBBFF]/65 hover:shadow-[0_34px_90px_rgba(15,23,42,0.36),0_0_54px_rgba(17,87,216,0.28)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9BC4FF] focus-visible:ring-offset-4 focus-visible:ring-offset-[#F5F7FB] sm:p-8 lg:p-10"
+          >
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute -left-24 top-1/2 h-72 w-72 -translate-y-1/2 rounded-full bg-[#1157D8]/20 blur-3xl transition duration-500 group-hover:bg-[#1157D8]/30"
+            />
+            <div className="relative grid items-center gap-8 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:gap-12">
+              <div className="contents lg:block">
+                <div className="order-1">
+                  <p className="w-full max-w-[46rem] rounded-[1rem] border border-[#6EA8FF]/55 bg-[#1157D8]/20 px-4 py-3 text-center text-xs font-extrabold uppercase tracking-[0.14em] text-[#D7E4FF] shadow-[0_0_22px_rgba(59,130,246,0.28),inset_0_1px_0_rgba(255,255,255,0.12)] sm:px-5 sm:text-sm sm:tracking-[0.18em] lg:text-left">
+                    COMING SOON — PRE-ORDERS START 1ST OCT 2026
+                  </p>
+                  <p className="mt-5 text-sm font-bold uppercase tracking-[0.24em] text-[#9BC4FF]">
+                    Elite Band
+                  </p>
+                  <h2 className="mt-3 max-w-xl text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl">
+                    Your body changes. Your training should too.
+                  </h2>
+                </div>
+
+                <div className="order-3 mt-6 lg:mt-0">
+                  <p className="max-w-xl text-base font-medium leading-7 text-[#D7E4FF] sm:text-lg sm:leading-8">
+                    Elite Band is being built to connect your real-world physiology directly to Elite Pocket PT — turning recovery, training and health data into information the system can use to understand what should happen next.
+                  </p>
+                  <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-3">
+                    <span className="text-sm font-bold uppercase tracking-[0.16em] text-[#9BC4FF]">
+                      Unlock the full system.
+                    </span>
+                    <span className="inline-flex items-center gap-2 text-base font-bold text-white transition group-hover:text-[#B8D5FF]">
+                      Discover Elite Band <span aria-hidden="true">→</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="order-2 overflow-hidden rounded-[1.5rem] border border-white/10 bg-[#07101F] shadow-[0_20px_52px_rgba(0,0,0,0.32)]">
+                <Image
+                  src="/elite-band-landing-card-v2.png"
+                  alt="Elite Band wearable and premium presentation box"
+                  width={1672}
+                  height={941}
+                  sizes="(min-width: 1024px) 55vw, 100vw"
+                  className="h-auto w-full transition duration-500 group-hover:scale-[1.015]"
+                />
+              </div>
+            </div>
+          </Link>
+        </div>
+      </section>
+
       <section className="overflow-hidden bg-[#0B1220] px-5 py-20 text-white">
         <div className="mx-auto max-w-7xl">
           <div className="mx-auto max-w-4xl text-center">
