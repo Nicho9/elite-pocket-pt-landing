@@ -6,6 +6,12 @@ import { createBrowserSupabaseClient } from "../../lib/supabaseClient";
 
 type WebinarRecord = Record<string, unknown>;
 
+const PERFORMANCE_NUTRITION_WEBINAR_SLUG = "an-introduction-to-performance-nutrition";
+const WEBINAR_DISPLAY_PRIORITY: Record<string, number> = {
+  [PERFORMANCE_NUTRITION_WEBINAR_SLUG]: 0,
+  "insulin-resistance-what-it-is-and-what-does-it-affect": 1,
+};
+
 function readString(record: WebinarRecord, keys: string[]) {
   for (const key of keys) {
     const value = record[key];
@@ -99,10 +105,11 @@ export default function VipWebinarsPage() {
       setIsLoading(true);
       setErrorMessage("");
 
-      const { data, error } = await supabase
-        .from("vip_webinars")
-        .select("*")
-        .eq("is_published", true);
+      const webinarQuery = supabase.from("vip_webinars").select("*");
+      const { data, error } =
+        process.env.NODE_ENV === "development"
+          ? await webinarQuery.or(`is_published.eq.true,slug.eq.${PERFORMANCE_NUTRITION_WEBINAR_SLUG}`)
+          : await webinarQuery.eq("is_published", true);
 
       if (!isMounted) {
         return;
@@ -126,6 +133,13 @@ export default function VipWebinarsPage() {
   }, [supabase]);
 
   const sortedWebinars = [...webinars].sort((left, right) => {
+    const leftPriority = WEBINAR_DISPLAY_PRIORITY[readString(left, ["slug"])] ?? Number.MAX_SAFE_INTEGER;
+    const rightPriority = WEBINAR_DISPLAY_PRIORITY[readString(right, ["slug"])] ?? Number.MAX_SAFE_INTEGER;
+
+    if (leftPriority !== rightPriority) {
+      return leftPriority - rightPriority;
+    }
+
     const leftDate = readString(left, ["scheduled_release_at", "release_at", "created_at"]);
     const rightDate = readString(right, ["scheduled_release_at", "release_at", "created_at"]);
     return new Date(leftDate).getTime() - new Date(rightDate).getTime();
@@ -218,6 +232,8 @@ export default function VipWebinarsPage() {
               const thumbnailUrl = readString(webinar, ["thumbnail_url"]);
               const accessTier = readString(webinar, ["access_tier"]).toLowerCase();
               const isFreeWebinar = accessTier === "free";
+              const isDevelopmentPreview =
+                process.env.NODE_ENV === "development" && slug === PERFORMANCE_NUTRITION_WEBINAR_SLUG;
               const releaseAt = readString(webinar, ["scheduled_release_at", "release_at"]);
               const durationMinutes = readNumber(webinar, ["duration_minutes", "duration"]);
               const locked = webinarIsLocked(webinar, now);
@@ -269,6 +285,11 @@ export default function VipWebinarsPage() {
                       <span className="rounded-full bg-white/85 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-[#1157D8] shadow-sm backdrop-blur">
                         {isFreeWebinar ? "Free" : "VIP"}
                       </span>
+                      {isDevelopmentPreview && (
+                        <span className="rounded-full bg-[#FFF7D6]/95 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-[#92400E] shadow-sm backdrop-blur">
+                          Local preview
+                        </span>
+                      )}
                       {durationMinutes !== null && (
                         <span className="rounded-full bg-white/85 px-3 py-1 text-xs font-bold text-[#334155] shadow-sm backdrop-blur">
                           {durationMinutes} min

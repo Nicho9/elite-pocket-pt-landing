@@ -3,13 +3,16 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
-import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createBrowserSupabaseClient } from "../../../lib/supabaseClient";
 import type { PerformanceNutritionAssessmentResult } from "../../../lib/performanceNutritionAssessment";
 
 type DatabaseRecord = Record<string, unknown>;
 
 const PERFORMANCE_NUTRITION_WEBINAR_SLUG = "an-introduction-to-performance-nutrition";
+const automaticallyEmailedAssessmentKeys = new Set<string>();
+
+type PdfEmailStatus = "idle" | "sending" | "sent" | "failed";
 
 type AssessmentFormInputs = {
   sex: string;
@@ -113,6 +116,236 @@ function contentText(block: DatabaseRecord) {
 
 function contentTitle(block: DatabaseRecord) {
   return readString(block, ["title", "heading"]);
+}
+
+function titlesMatch(left: string, right: string) {
+  return left.trim().replace(/s+/g, " ").toLocaleLowerCase() === right.trim().replace(/s+/g, " ").toLocaleLowerCase();
+}
+
+function assessmentResultKey(result: PerformanceNutritionAssessmentResult) {
+  const serialized = JSON.stringify(result);
+  let hash = 2166136261;
+
+  for (let index = 0; index < serialized.length; index += 1) {
+    hash ^= serialized.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return (hash >>> 0).toString(36);
+}
+
+function dropdownItems(block: DatabaseRecord) {
+  const value = block.dropdown_items;
+
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .filter((item): item is DatabaseRecord => Boolean(item) && typeof item === "object" && !Array.isArray(item))
+    .map((item, index) => ({
+      id: readString(item, ["id", "slug", "title", "heading"]) || String(index),
+      title: readString(item, ["title", "heading", "label"]),
+      body: readString(item, ["content", "body", "text", "description"]),
+    }))
+    .filter((item) => item.title || item.body);
+}
+
+type StructuredTextBlock =
+  | { type: "paragraph"; text: string; isLeadIn: boolean; isShortStatement: boolean }
+  | { type: "list"; items: string[] };
+
+function parseStructuredText(body: string): StructuredTextBlock[] {
+  const blocks: Array<{ type: "paragraph"; text: string } | { type: "list"; items: string[] }> = [];
+  const paragraphGroups = body
+    .replaceAll("\r\n", "\n")
+    .split(/\n\s*\n/)
+    .map((group) => group.trim())
+    .filter(Boolean);
+
+  for (const group of paragraphGroups) {
+    const lines = group
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
+    let lineIndex = 0;
+
+    while (lineIndex < lines.length) {
+      if (/^(?:•|-)\s+/.test(lines[lineIndex])) {
+        const items: string[] = [];
+
+        while (lineIndex < lines.length && /^(?:•|-)\s+/.test(lines[lineIndex])) {
+          items.push(lines[lineIndex].replace(/^(?:•|-)\s+/, ""));
+          lineIndex += 1;
+        }
+
+        blocks.push({ type: "list", items });
+        continue;
+      }
+
+      const paragraphLines: string[] = [];
+
+      while (lineIndex < lines.length && !/^(?:•|-)\s+/.test(lines[lineIndex])) {
+        paragraphLines.push(lines[lineIndex]);
+        lineIndex += 1;
+      }
+
+      blocks.push({ type: "paragraph", text: paragraphLines.join(" ") });
+    }
+  }
+
+  return blocks.map((block, index) => {
+    if (block.type === "list") {
+      return block;
+    }
+
+    const nextBlock = blocks[index + 1];
+    const wordCount = block.text.split(/\s+/).length;
+
+    return {
+      ...block,
+      isLeadIn: nextBlock?.type === "list",
+      isShortStatement: wordCount <= 16 && block.text.length <= 110 && !block.text.endsWith(":"),
+    };
+  });
+}
+
+function renderInlineText(text: string) {
+  const leadTerm = text.match(/^(.{1,48}:)(\s+.+)$/);
+
+  if (!leadTerm) {
+    return text;
+  }
+
+  return (
+    <>
+      <span className="font-semibold text-[#0B1220]">{leadTerm[1]}</span>
+      {leadTerm[2]}
+    </>
+  );
+}
+
+function renderListItemText(item: string) {
+  const emDashIndex = item.indexOf("—");
+
+  if (emDashIndex > 0) {
+    const leadingText = item.slice(0, emDashIndex).trim();
+    const remainingText = item.slice(emDashIndex + 1).trim();
+
+    if (leadingText && remainingText) {
+      return (
+        <>
+          <span className="font-semibold text-[#101B35]">{leadingText}</span>
+          <span> — {remainingText}</span>
+        </>
+      );
+    }
+  }
+
+  return renderInlineText(item);
+}
+
+function StructuredTextBody({
+  body,
+  className = "",
+}: {
+  body: string;
+  className?: string;
+}) {
+  const blocks = parseStructuredText(body);
+
+  if (blocks.length === 0) return null;
+
+  return (
+    <div className={`max-w-3xl space-y-4 sm:space-y-5 ${className}`}>
+      {blocks.map((block, index) => {
+        if (block.type === "list") {
+          return (
+            <ul
+              className="space-y-3 py-1 text-[1rem] leading-7 text-[#3F4B5D] sm:text-[1.0625rem] sm:leading-8"
+              key={`list-${index}`}
+            >
+              {block.items.map((item, itemIndex) => (
+                <li className="flex gap-3" key={`${item}-${itemIndex}`}>
+                  <span
+                    aria-hidden="true"
+                    className="mt-2.5 flex h-2.5 w-2.5 shrink-0 items-center justify-center rounded-full bg-[#E4EEFF]"
+                  >
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#155EDB]" />
+                  </span>
+                  <span>{renderListItemText(item)}</span>
+                </li>
+              ))}
+            </ul>
+          );
+        }
+
+        return (
+          <p
+            className={
+              block.isLeadIn
+                ? "pt-1 text-[1.0625rem] font-semibold leading-7 text-[#111C35] sm:text-lg sm:leading-8"
+                : block.isShortStatement
+                  ? "border-l-2 border-[#1A62D7] pl-4 text-[1.0625rem] font-semibold leading-7 text-[#182744] sm:text-lg sm:leading-8"
+                  : "text-[1rem] leading-7 text-[#3F4B5D] sm:text-[1.0625rem] sm:leading-8"
+            }
+            key={`paragraph-${index}`}
+          >
+            {renderInlineText(block.text)}
+          </p>
+        );
+      })}
+    </div>
+  );
+}
+
+function WebinarTextContent({ title, body }: { title: string; body: string }) {
+  return (
+    <article className="rounded-[1.5rem] border border-[#E1E7F0] bg-white p-5 shadow-[0_16px_36px_rgba(15,23,42,0.055)] sm:p-9">
+      {title ? (
+        <header className="mb-6 max-w-3xl sm:mb-7">
+          <span aria-hidden="true" className="mb-3 block h-1 w-11 rounded-full bg-[#155EDB]" />
+          <h3 className="text-xl font-bold tracking-[-0.025em] text-[#101B35] sm:text-2xl">{title}</h3>
+        </header>
+      ) : null}
+      <StructuredTextBody body={body} />
+    </article>
+  );
+}
+
+function WebinarAccordion({ id, title, body }: { id: string; title: string; body: string }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const contentId = `webinar-accordion-${id}`;
+
+  return (
+    <section className="overflow-hidden rounded-[1.25rem] border border-[#DEE6F1] bg-white shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
+      <button
+        aria-controls={contentId}
+        aria-expanded={isOpen}
+        className="group flex w-full items-center gap-4 px-5 py-4 text-left transition-colors hover:bg-[#F7FAFF] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-[#155EDB] sm:px-6 sm:py-5"
+        onClick={() => setIsOpen((open) => !open)}
+        type="button"
+      >
+        <span aria-hidden="true" className="h-8 w-1 shrink-0 rounded-full bg-[#155EDB]" />
+        <span className="flex-1 text-base font-bold tracking-[-0.015em] text-[#101B35] sm:text-lg">
+          {title || "More detail"}
+        </span>
+        <svg
+          aria-hidden="true"
+          className={`h-5 w-5 shrink-0 text-[#155EDB] transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <path d="m6 9 6 6 6-6" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
+        </svg>
+      </button>
+      {isOpen ? (
+        <div className="border-t border-[#E4EAF3] bg-[#F8FAFE] px-5 py-5 sm:px-6 sm:py-6" id={contentId}>
+          <StructuredTextBody body={body} />
+        </div>
+      ) : null}
+    </section>
+  );
 }
 
 function isVip(profile: UserProfile | null) {
@@ -303,8 +536,13 @@ export default function VipWebinarDetailPage() {
   const [assessmentError, setAssessmentError] = useState("");
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [pdfError, setPdfError] = useState("");
+  const [pdfEmailStatus, setPdfEmailStatus] = useState<PdfEmailStatus>("idle");
+  const [pdfEmailAddress, setPdfEmailAddress] = useState("");
+  const autoEmailAttemptKeyRef = useRef<string | null>(null);
 
   const slug = params.slug;
+  const isDevelopmentPreview =
+    process.env.NODE_ENV === "development" && slug === PERFORMANCE_NUTRITION_WEBINAR_SLUG;
 
   useEffect(() => {
     let isMounted = true;
@@ -332,12 +570,10 @@ export default function VipWebinarDetailPage() {
         return;
       }
 
-      const { data: webinarData, error: webinarError } = await supabase
-        .from("vip_webinars")
-        .select("*")
-        .eq("slug", slug)
-        .eq("is_published", true)
-        .single();
+      const webinarQuery = supabase.from("vip_webinars").select("*").eq("slug", slug);
+      const { data: webinarData, error: webinarError } = isDevelopmentPreview
+        ? await webinarQuery.single()
+        : await webinarQuery.eq("is_published", true).single();
 
       if (!isMounted) {
         return;
@@ -447,7 +683,7 @@ export default function VipWebinarDetailPage() {
     return () => {
       isMounted = false;
     };
-  }, [router, slug, supabase]);
+  }, [isDevelopmentPreview, router, slug, supabase]);
 
   const activeQuizSection = sections.find((section) => sectionRecordId(section) === activeQuizSectionId) || null;
   const activeQuizQuestions = activeQuizSectionId
@@ -590,6 +826,8 @@ export default function VipWebinarDetailPage() {
 
     setAssessmentError("");
     setPdfError("");
+    setPdfEmailStatus("idle");
+    setPdfEmailAddress("");
     setAssessmentResult(calculatePerformanceNutritionAssessment(assessmentInputs));
   }
 
@@ -612,14 +850,75 @@ export default function VipWebinarDetailPage() {
     }
   }
 
+  const sendAssessmentPdfEmail = useCallback(
+    async (result: PerformanceNutritionAssessmentResult) => {
+      setPdfEmailStatus("sending");
+      setPdfEmailAddress("");
+
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const accessToken = sessionData.session?.access_token;
+
+        if (!accessToken) {
+          throw new Error("Missing authenticated session.");
+        }
+
+        const response = await fetch("/api/performance-nutrition-pdf", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + accessToken,
+          },
+          body: JSON.stringify({ assessmentResult: result }),
+        });
+        const payload = (await response.json().catch(() => null)) as
+          | { success?: unknown; email?: unknown }
+          | null;
+
+        if (!response.ok || payload?.success !== true || typeof payload.email !== "string") {
+          throw new Error("PDF email request failed.");
+        }
+
+        setPdfEmailAddress(payload.email);
+        setPdfEmailStatus("sent");
+      } catch (error) {
+        console.error(
+          "Performance nutrition PDF email request failed:",
+          error instanceof Error ? error.message : "Unknown error",
+        );
+        setPdfEmailStatus("failed");
+      }
+    },
+    [supabase],
+  );
+
+  useEffect(() => {
+    if (!assessmentResult || slug !== PERFORMANCE_NUTRITION_WEBINAR_SLUG) {
+      return;
+    }
+
+    const resultKey = assessmentResultKey(assessmentResult);
+
+    if (
+      autoEmailAttemptKeyRef.current === resultKey ||
+      automaticallyEmailedAssessmentKeys.has(resultKey)
+    ) {
+      return;
+    }
+
+    autoEmailAttemptKeyRef.current = resultKey;
+    automaticallyEmailedAssessmentKeys.add(resultKey);
+    void sendAssessmentPdfEmail(assessmentResult);
+  }, [assessmentResult, sendAssessmentPdfEmail, slug]);
+
   const canSubmitQuiz =
     activeQuizQuestions.length === 0 ||
     activeQuizQuestions.every((question) => answers[recordId(question)]?.trim());
 
   return (
-    <main className="min-h-screen bg-[#F5F7FB] px-5 py-12 text-[#111827]">
+    <main className="min-h-screen bg-[#F5F7FB] px-4 py-8 text-[#111827] sm:px-6 sm:py-12">
       <section className="mx-auto w-full max-w-5xl">
-        <Link href="/vip-webinars" className="text-sm font-bold text-[#1157D8] transition hover:text-[#0A39A8]">
+        <Link href="/vip-webinars" className="text-sm font-bold text-[#1157D8] transition hover:text-[#0A39A8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#1157D8]">
           Back to VIP Webinars
         </Link>
 
@@ -643,12 +942,12 @@ export default function VipWebinarDetailPage() {
           </p>
         ) : webinar ? (
           <>
-            <div className="mt-8 rounded-[2rem] border border-[#E5E7EB] bg-white p-8 shadow-[0_22px_64px_rgba(15,23,42,0.08)]">
+            <div className="mt-8 rounded-[2rem] border border-[#E1E7F0] bg-white p-6 shadow-[0_22px_64px_rgba(15,23,42,0.08)] sm:p-10">
               <p className="text-sm font-bold uppercase tracking-[0.22em] text-[#1157D8]">VIP Webinar</p>
               <h1 className="mt-4 text-4xl font-bold tracking-tight text-[#0B1220] sm:text-5xl">
                 {readString(webinar, ["title", "name"]) || "VIP Webinar"}
               </h1>
-              <p className="mt-4 max-w-3xl text-base font-medium leading-7 text-[#4B5563]">
+              <p className="mt-4 max-w-3xl text-base font-medium leading-7 text-[#4B5563] sm:text-[1.0625rem] sm:leading-8">
                 {readString(webinar, ["description", "summary", "intro"]) ||
                   "Work through each section, complete the quiz, and unlock the full education session."}
               </p>
@@ -662,9 +961,10 @@ export default function VipWebinarDetailPage() {
                 </p>
               </div>
             ) : (
-              <div className="mt-6 grid gap-6">
+              <div className="mt-7 grid gap-7 sm:mt-9 sm:gap-9">
                 {sections.map((section, sectionIndex) => {
                   const sectionId = sectionRecordId(section);
+                  const sectionTitle = readString(section, ["title", "name"]);
                   const sectionBlocks = contentBlocks.filter((block) => readString(block, ["section_id"]) === sectionId);
                   const isComplete = completedSectionIds.includes(sectionId);
                   const canOpenSection =
@@ -673,20 +973,30 @@ export default function VipWebinarDetailPage() {
                   return (
                     <article
                       key={sectionId}
-                      className={`rounded-[2rem] border border-[#E5E7EB] bg-white p-6 shadow-[0_18px_54px_rgba(15,23,42,0.07)] ${
-                        canOpenSection ? "" : "opacity-55"
+                      className={`relative overflow-hidden rounded-[1.75rem] border p-5 shadow-[0_18px_54px_rgba(15,23,42,0.07)] sm:p-8 ${
+                        isComplete
+                          ? "border-[#CFE8DA] bg-[#FCFFFD]"
+                          : canOpenSection
+                            ? "border-[#D8E4F5] bg-white"
+                            : "border-[#E1E7F0] bg-[#F8FAFC]"
                       }`}
                     >
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div
+                        aria-hidden={!canOpenSection}
+                        className={canOpenSection ? "" : "pointer-events-none select-none opacity-50"}
+                        inert={!canOpenSection || undefined}
+                      >
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                         <div>
                           <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#1157D8]">
-                            Section {sectionIndex + 1}
+                            Section {sectionIndex + 1} of {sections.length}
                           </p>
-                          <h2 className="mt-3 text-2xl font-bold tracking-tight text-[#0B1220]">
-                            {readString(section, ["title", "name"]) || `Section ${sectionIndex + 1}`}
+                          <span aria-hidden="true" className="mt-3 block h-1 w-11 rounded-full bg-[#155EDB]" />
+                          <h2 className="mt-4 text-2xl font-bold tracking-[-0.03em] text-[#101B35] sm:text-3xl">
+                            {sectionTitle || `Section ${sectionIndex + 1}`}
                           </h2>
                           {readString(section, ["description", "summary"]) && (
-                            <p className="mt-3 text-base font-medium leading-7 text-[#4B5563]">
+                            <p className="mt-3 max-w-3xl text-base font-medium leading-7 text-[#4B5563] sm:text-[1.0625rem] sm:leading-8">
                               {readString(section, ["description", "summary"])}
                             </p>
                           )}
@@ -696,7 +1006,16 @@ export default function VipWebinarDetailPage() {
                         </span>
                       </div>
 
-                      <div className="mt-6 grid gap-4">
+                      <div className="mt-6 h-1.5 overflow-hidden rounded-full bg-[#E8EDF5]" aria-hidden="true">
+                        <div
+                          className={`h-full rounded-full ${
+                            isComplete ? "bg-[#2E9C64]" : canOpenSection ? "bg-[#155EDB]" : "bg-transparent"
+                          }`}
+                          style={{ width: isComplete ? "100%" : canOpenSection ? "44%" : "0%" }}
+                        />
+                      </div>
+
+                      <div className="mt-7 grid gap-5">
                         {sectionBlocks.length === 0 ? (
                           <p className="rounded-2xl bg-[#F8FAFC] px-4 py-5 text-sm font-semibold text-[#4B5563]">
                             Content for this section is coming soon.
@@ -708,31 +1027,33 @@ export default function VipWebinarDetailPage() {
                             const blockBody = contentText(block);
                             const contentType = readString(block, ["content_type", "type"]).toLowerCase();
                             const mediaUrl = readString(block, ["media_url", "video_url", "embed_url"]);
+                            const nestedDropdownItems = dropdownItems(block);
+                            const showMediaTitle =
+                              Boolean(blockTitle) && (contentType !== "image" || !titlesMatch(blockTitle, sectionTitle));
 
                             if ((contentType === "image" || contentType === "infographic") && mediaUrl) {
                               return (
                                 <div
                                   key={blockId}
-                                  className="overflow-hidden rounded-[1.75rem] border border-[#E5E7EB] bg-white shadow-[0_18px_54px_rgba(15,23,42,0.08)]"
+                                  className="rounded-[1.5rem] border border-[#E1E7F0] bg-white p-4 shadow-[0_16px_36px_rgba(15,23,42,0.055)] sm:p-5"
                                 >
-                                  {blockTitle && (
-                                    <h3 className="px-5 pt-5 text-lg font-bold text-[#0B1220]">{blockTitle}</h3>
+                                  {showMediaTitle && (
+                                    <h3 className="text-base font-bold tracking-[-0.015em] text-[#101B35] sm:text-lg">{blockTitle}</h3>
                                   )}
-                                  <div className="relative mt-5 aspect-[16/9] w-full overflow-hidden bg-[#E8EEF7]">
+                                  <div
+                                    className={`relative aspect-[16/9] w-full overflow-hidden rounded-[1.25rem] bg-[#F2F5FA] ${
+                                      showMediaTitle ? "mt-4" : ""
+                                    }`}
+                                  >
                                     <Image
                                       src={mediaUrl}
                                       alt={blockTitle || "VIP webinar media"}
                                       fill
                                       unoptimized
                                       sizes="(min-width: 1024px) 896px, calc(100vw - 64px)"
-                                      className="object-cover"
+                                      className={contentType === "infographic" ? "object-contain" : "object-cover"}
                                     />
                                   </div>
-                                  {blockBody && (
-                                    <p className="px-5 py-5 text-base font-medium leading-7 text-[#4B5563]">
-                                      {blockBody}
-                                    </p>
-                                  )}
                                 </div>
                               );
                             }
@@ -741,21 +1062,16 @@ export default function VipWebinarDetailPage() {
                               return (
                                 <div
                                   key={blockId}
-                                  className="overflow-hidden rounded-[1.75rem] border border-[#E5E7EB] bg-white shadow-[0_18px_54px_rgba(15,23,42,0.08)]"
+                                  className="rounded-[1.5rem] border border-[#E1E7F0] bg-white p-4 shadow-[0_16px_36px_rgba(15,23,42,0.055)] sm:p-5"
                                 >
-                                  <div className="mt-5 flex aspect-[16/9] w-full items-center justify-center bg-black px-5 text-center">
+                                  <div className="flex aspect-[16/9] w-full items-center justify-center rounded-[1.25rem] bg-[#070B14] px-5 text-center">
                                     <div>
                                       <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#9CA3AF]">
                                         {contentType} placeholder
                                       </p>
-                                      {blockTitle && <h3 className="mt-2 text-lg font-bold text-white">{blockTitle}</h3>}
+                                      {showMediaTitle && <h3 className="mt-2 text-lg font-bold text-white">{blockTitle}</h3>}
                                     </div>
                                   </div>
-                                  {blockBody && (
-                                    <p className="px-5 py-5 text-base font-medium leading-7 text-[#4B5563]">
-                                      {blockBody}
-                                    </p>
-                                  )}
                                 </div>
                               );
                             }
@@ -764,12 +1080,12 @@ export default function VipWebinarDetailPage() {
                               return (
                                 <div
                                   key={blockId}
-                                  className="overflow-hidden rounded-[1.75rem] border border-[#E5E7EB] bg-white shadow-[0_18px_54px_rgba(15,23,42,0.08)]"
+                                  className="rounded-[1.5rem] border border-[#E1E7F0] bg-white p-4 shadow-[0_16px_36px_rgba(15,23,42,0.055)] sm:p-5"
                                 >
                                   {blockTitle && (
-                                    <h3 className="px-5 pt-5 text-lg font-bold text-[#0B1220]">{blockTitle}</h3>
+                                    <h3 className="text-base font-bold tracking-[-0.015em] text-[#101B35] sm:text-lg">{blockTitle}</h3>
                                   )}
-                                  <div className="mt-5 aspect-[16/9] w-full overflow-hidden bg-[#0B1220]">
+                                  <div className="mt-4 aspect-[16/9] w-full overflow-hidden rounded-[1.25rem] bg-[#0B1220]">
                                     <video
                                       src={mediaUrl}
                                       controls
@@ -779,9 +1095,9 @@ export default function VipWebinarDetailPage() {
                                     </video>
                                   </div>
                                   {blockBody && (
-                                    <p className="px-5 py-5 text-base font-medium leading-7 text-[#4B5563]">
-                                      {blockBody}
-                                    </p>
+                                    <div className="pt-5">
+                                      <StructuredTextBody body={blockBody} />
+                                    </div>
                                   )}
                                 </div>
                               );
@@ -791,47 +1107,58 @@ export default function VipWebinarDetailPage() {
                               return (
                                 <div
                                   key={blockId}
-                                  className="overflow-hidden rounded-[1.75rem] border border-[#E5E7EB] bg-white shadow-[0_18px_54px_rgba(15,23,42,0.08)]"
+                                  className="rounded-[1.5rem] border border-[#E1E7F0] bg-white p-4 shadow-[0_16px_36px_rgba(15,23,42,0.055)] sm:p-5"
                                 >
-                                  <div className="mt-5 flex aspect-[16/9] w-full items-center justify-center bg-black px-5 text-center">
+                                  <div className="flex aspect-[16/9] w-full items-center justify-center rounded-[1.25rem] bg-[#070B14] px-5 text-center">
                                     <div>
+                                      <svg aria-hidden="true" className="mx-auto h-7 w-7 text-[#8EA4C8]" fill="none" viewBox="0 0 24 24">
+                                        <rect height="14" rx="2.5" stroke="currentColor" strokeWidth="1.6" width="18" x="3" y="5" />
+                                        <path d="m10 9 5 3-5 3V9Z" fill="currentColor" />
+                                      </svg>
                                       <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#9CA3AF]">
                                         VIDEO PLACEHOLDER
                                       </p>
                                       {blockTitle && <h3 className="mt-2 text-lg font-bold text-white">{blockTitle}</h3>}
+                                      <p className="mt-2 text-sm font-medium text-[#B5C1D4]">Video coming soon</p>
                                     </div>
                                   </div>
                                   {blockBody && (
-                                    <p className="px-5 py-5 text-base font-medium leading-7 text-[#4B5563]">
-                                      {blockBody}
-                                    </p>
+                                    <div className="pt-5">
+                                      <StructuredTextBody body={blockBody} />
+                                    </div>
                                   )}
                                 </div>
                               );
                             }
 
                             if (contentType === "dropdown") {
+                              if (nestedDropdownItems.length > 0) {
+                                return (
+                                  <div className="grid gap-4" key={blockId}>
+                                    {nestedDropdownItems.map((item, itemIndex) => (
+                                      <WebinarAccordion
+                                        body={item.body}
+                                        id={`${blockId}-${item.id}-${itemIndex}`}
+                                        key={`${item.id}-${itemIndex}`}
+                                        title={item.title}
+                                      />
+                                    ))}
+                                  </div>
+                                );
+                              }
+
                               return (
-                                <details
+                                <WebinarAccordion
+                                  body={blockBody}
                                   key={blockId}
-                                  className="group rounded-2xl border border-[#E5E7EB] bg-[#F8FAFC] p-5"
-                                >
-                                  <summary className="cursor-pointer list-none text-lg font-bold text-[#0B1220] marker:hidden">
-                                    <span className="flex items-center justify-between gap-4">
-                                      <span>{blockTitle || "More detail"}</span>
-                                      <span className="text-sm font-bold text-[#1157D8] group-open:hidden">Open</span>
-                                      <span className="hidden text-sm font-bold text-[#1157D8] group-open:inline">
-                                        Close
-                                      </span>
-                                    </span>
-                                  </summary>
-                                  {blockBody && (
-                                    <p className="mt-4 whitespace-pre-line text-base font-medium leading-7 text-[#4B5563]">
-                                      {blockBody}
-                                    </p>
-                                  )}
-                                </details>
+                                  id={blockId}
+                                  title={blockTitle}
+                                />
                               );
+                            }
+
+                            if (contentType === "text") {
+                              return <WebinarTextContent key={blockId} title={blockTitle} body={blockBody} />;
                             }
 
                             return (
@@ -852,10 +1179,27 @@ export default function VipWebinarDetailPage() {
                         type="button"
                         onClick={() => openQuiz(sectionId)}
                         disabled={!canOpenSection}
-                        className="mt-6 h-12 rounded-2xl bg-[#1157D8] px-5 text-sm font-bold text-white shadow-[0_14px_32px_rgba(17,87,216,0.22)] transition hover:bg-[#0A39A8] disabled:cursor-not-allowed disabled:bg-[#9CA3AF] disabled:shadow-none"
+                        className="mt-7 h-12 rounded-xl bg-[#1157D8] px-5 text-sm font-bold text-white shadow-[0_14px_32px_rgba(17,87,216,0.22)] transition hover:bg-[#0A39A8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1157D8] disabled:cursor-not-allowed disabled:bg-[#9CA3AF] disabled:shadow-none"
                       >
                         Take quiz
                       </button>
+                      </div>
+                      {!canOpenSection ? (
+                        <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/70 p-5 backdrop-blur-[1px]">
+                          <div className="max-w-sm rounded-2xl border border-[#D7E3F4] bg-white/95 p-5 text-center shadow-[0_14px_36px_rgba(15,23,42,0.1)] sm:p-6">
+                            <span aria-hidden="true" className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-[#EAF2FF] text-[#155EDB]">
+                              <svg fill="none" viewBox="0 0 24 24" className="h-5 w-5">
+                                <rect height="10" rx="2" stroke="currentColor" strokeWidth="1.8" width="14" x="5" y="10" />
+                                <path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+                              </svg>
+                            </span>
+                            <p className="mt-3 text-base font-bold text-[#101B35]">Locked until quiz is passed</p>
+                            <p className="mt-2 text-sm font-medium leading-6 text-[#526174]">
+                              Complete and pass the previous section knowledge check to unlock this section.
+                            </p>
+                          </div>
+                        </div>
+                      ) : null}
                     </article>
                   );
                 })}
@@ -866,19 +1210,19 @@ export default function VipWebinarDetailPage() {
       </section>
 
       {activeQuizSection && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0B1220]/45 px-5">
-          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[2rem] bg-white p-6 shadow-[0_28px_90px_rgba(15,23,42,0.24)]">
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#1157D8]">Quiz</p>
-            <h2 className="mt-3 text-2xl font-bold text-[#0B1220]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0B1220]/55 px-4 py-5 backdrop-blur-[2px] sm:px-6">
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[1.75rem] border border-[#D9E4F4] bg-white p-5 shadow-[0_28px_90px_rgba(15,23,42,0.24)] sm:p-8">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#1157D8]">Knowledge check</p>
+            <h2 className="mt-3 text-2xl font-bold tracking-[-0.025em] text-[#101B35] sm:text-3xl">
               {readString(activeQuizSection, ["title", "name"]) || "Section quiz"}
             </h2>
 
             {activeQuizQuestions.length === 0 ? (
-              <p className="mt-5 rounded-2xl bg-[#F8FAFC] px-4 py-5 text-sm font-semibold text-[#4B5563]">
+              <p className="mt-6 rounded-2xl border border-[#E1E7F0] bg-[#F8FAFC] px-4 py-5 text-sm font-semibold text-[#4B5563]">
                 This section does not have quiz questions yet. You can mark it complete.
               </p>
             ) : (
-              <div className="mt-5 grid gap-5">
+              <div className="mt-6 grid gap-5">
                 {activeQuizQuestions.map((question, questionIndex) => {
                   const questionId = recordId(question);
                   const options = readArray(question, ["options", "choices", "answers"]);
@@ -887,26 +1231,31 @@ export default function VipWebinarDetailPage() {
                   return (
                     <div
                       key={questionId}
-                      className={`rounded-2xl border p-5 ${
-                        hasIncorrectAnswer ? "border-red-200 bg-red-50" : "border-[#E5E7EB] bg-[#F8FAFC]"
+                      className={`rounded-[1.25rem] border p-5 ${
+                        hasIncorrectAnswer ? "border-[#F1B6B3] bg-[#FFF7F6]" : "border-[#DDE6F2] bg-[#FAFCFF]"
                       }`}
                     >
-                      <p className="text-sm font-bold text-[#0B1220]">
-                        {questionIndex + 1}. {readString(question, ["question_text", "question", "prompt", "title"])}
+                      <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#155EDB]">
+                        Question {questionIndex + 1} of {activeQuizQuestions.length}
+                      </p>
+                      <p className="mt-2 text-base font-bold leading-7 text-[#101B35] sm:text-lg">
+                        {readString(question, ["question_text", "question", "prompt", "title"])}
                       </p>
 
                       {options.length > 0 ? (
-                        <div className="mt-4 grid gap-2">
+                        <div className="mt-5 grid gap-3">
                           {options.map((option) => {
                             const selectedAnswerIsIncorrect = hasIncorrectAnswer && answers[questionId] === option;
 
                             return (
                               <label
                                 key={option}
-                                className={`flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm font-semibold ${
+                                className={`flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-sm font-semibold transition focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[#155EDB] ${
                                   selectedAnswerIsIncorrect
-                                    ? "border-red-300 bg-red-100 text-red-800"
-                                    : "border-transparent bg-white text-[#374151]"
+                                    ? "border-[#DC7772] bg-[#FFF0EF] text-[#9F2F2A]"
+                                    : answers[questionId] === option
+                                      ? "border-[#78A8F5] bg-[#EEF5FF] text-[#102248]"
+                                      : "border-[#DDE5F0] bg-white text-[#374151] hover:border-[#9EBCEB] hover:bg-[#F8FBFF]"
                                 }`}
                               >
                                 <input
@@ -925,7 +1274,7 @@ export default function VipWebinarDetailPage() {
                         <textarea
                           value={answers[questionId] || ""}
                           onChange={(event) => updateAnswer(questionId, event.target.value)}
-                          className="mt-4 min-h-28 w-full rounded-2xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm font-medium text-[#111827] outline-none transition focus:border-[#1157D8] focus:ring-4 focus:ring-[#1157D8]/10"
+                          className="mt-5 min-h-28 w-full rounded-xl border border-[#DDE5F0] bg-white px-4 py-3 text-sm font-medium text-[#111827] outline-none transition focus:border-[#1157D8] focus:ring-4 focus:ring-[#1157D8]/10"
                           placeholder="Your answer"
                         />
                       )}
@@ -936,7 +1285,7 @@ export default function VipWebinarDetailPage() {
             )}
 
             {quizResultMessage && (
-              <p aria-live="polite" className="mt-5 rounded-2xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+              <p aria-live="polite" className="mt-6 rounded-xl border border-[#F0B8B4] bg-[#FFF4F3] px-4 py-3 text-sm font-semibold leading-6 text-[#9F2F2A]">
                 {quizResultMessage}
               </p>
             )}
@@ -945,7 +1294,7 @@ export default function VipWebinarDetailPage() {
               <button
                 type="button"
                 onClick={closeQuiz}
-                className="h-12 rounded-2xl border border-[#E5E7EB] bg-white px-5 text-sm font-bold text-[#374151] transition hover:border-[#1157D8] hover:text-[#1157D8]"
+                className="h-12 rounded-xl border border-[#D8E1EE] bg-white px-5 text-sm font-bold text-[#27364D] transition hover:border-[#1157D8] hover:text-[#1157D8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1157D8]"
               >
                 Cancel
               </button>
@@ -953,7 +1302,7 @@ export default function VipWebinarDetailPage() {
                 type="button"
                 onClick={completeQuiz}
                 disabled={!canSubmitQuiz}
-                className="h-12 rounded-2xl bg-[#1157D8] px-5 text-sm font-bold text-white transition hover:bg-[#0A39A8] disabled:cursor-not-allowed disabled:bg-[#9CA3AF]"
+                className="h-12 rounded-xl bg-[#1157D8] px-5 text-sm font-bold text-white shadow-[0_10px_24px_rgba(17,87,216,0.2)] transition hover:bg-[#0A39A8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1157D8] disabled:cursor-not-allowed disabled:bg-[#9CA3AF] disabled:shadow-none"
               >
                 Check answers
               </button>
@@ -1193,21 +1542,14 @@ export default function VipWebinarDetailPage() {
                     type="button"
                     onClick={() => {
                       setPdfError("");
+                      setPdfEmailStatus("idle");
+                      setPdfEmailAddress("");
                       setAssessmentResult(null);
                     }}
                     className="mt-5 text-sm font-bold text-[#1157D8] transition hover:text-[#0A39A8]"
                   >
                     Update your answers
                   </button>
-                  <button
-                    type="button"
-                    onClick={downloadAssessmentPdf}
-                    disabled={isGeneratingPdf}
-                    className="mt-5 flex h-12 w-full items-center justify-center rounded-2xl bg-[#1157D8] px-5 text-sm font-bold text-white shadow-[0_14px_32px_rgba(17,87,216,0.22)] transition hover:bg-[#0A39A8] disabled:cursor-not-allowed disabled:bg-[#9CA3AF] disabled:shadow-none sm:w-auto"
-                  >
-                    {isGeneratingPdf ? "Preparing PDF..." : "Download my nutrition summary"}
-                  </button>
-                  {pdfError && <p className="mt-3 text-sm font-semibold text-red-700">{pdfError}</p>}
                 </div>
 
                 <div className="grid gap-5 p-6 sm:p-8">
@@ -1272,12 +1614,55 @@ export default function VipWebinarDetailPage() {
                     <p className="mt-4 text-sm font-medium leading-6 text-[#4B5563]">Total daily carbohydrate intake still matters. {assessmentResult.postWorkout.hydrationGuidance}</p>
                   </section>
 
+                  <div className="rounded-2xl border border-[#D8E4F5] bg-[#F8FBFF] p-5">
+                    {pdfError && <p className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{pdfError}</p>}
+                    {pdfEmailStatus === "sending" && (
+                      <p aria-live="polite" className="mb-4 rounded-xl border border-[#D7E4F5] bg-white px-4 py-3 text-sm font-semibold text-[#35506F]">
+                        Preparing and emailing your personalised PDF…
+                      </p>
+                    )}
+                    {pdfEmailStatus === "sent" && (
+                      <p aria-live="polite" className="mb-4 rounded-xl border border-[#BFE2CE] bg-[#F3FCF6] px-4 py-3 text-sm font-semibold text-[#17613C]">
+                        Your personalised PDF has been emailed to {pdfEmailAddress}.
+                      </p>
+                    )}
+                    {pdfEmailStatus === "failed" && (
+                      <div className="mb-4 rounded-xl border border-[#F0C2BD] bg-[#FFF7F6] px-4 py-3">
+                        <p aria-live="polite" className="text-sm font-semibold text-[#9F2F2A]">
+                          We couldn’t email your PDF, but you can still download it below.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => void sendAssessmentPdfEmail(assessmentResult)}
+                          className="mt-3 text-sm font-bold text-[#1157D8] transition hover:text-[#0A39A8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1157D8]"
+                        >
+                          Retry Email
+                        </button>
+                      </div>
+                    )}
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                      <button
+                        type="button"
+                        onClick={downloadAssessmentPdf}
+                        disabled={isGeneratingPdf}
+                        className="flex h-12 w-full items-center justify-center rounded-xl bg-[#1157D8] px-5 text-sm font-bold text-white shadow-[0_14px_32px_rgba(17,87,216,0.22)] transition hover:bg-[#0A39A8] disabled:cursor-not-allowed disabled:bg-[#9CA3AF] disabled:shadow-none sm:w-auto"
+                      >
+                        {isGeneratingPdf ? "Preparing PDF..." : "Download My PDF"}
+                      </button>
+                      <a
+                        href="https://www.elitepocketpt.com"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex h-12 w-full items-center justify-center rounded-xl border border-[#B9CCE8] bg-white px-5 text-sm font-bold text-[#174FAD] transition hover:border-[#155EDB] hover:bg-[#EEF5FF] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1157D8] sm:w-auto"
+                      >
+                        Learn More About Elite Pocket PT
+                      </a>
+                    </div>
+                  </div>
+
                   <section className="rounded-2xl bg-[#0B1220] p-6 text-white">
                     <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#9BC4FF]">Important Context</p>
                     <p className="mt-4 text-sm font-medium leading-7 text-[#D7E4FF]">These values are evidence-based starting estimates generated from the information you entered. Your actual requirements can change with training load, body composition, recovery, medical history, competition schedule, gastrointestinal tolerance and real-world response.</p>
-                    <h3 className="mt-7 text-2xl font-bold tracking-tight">Want this built properly around you?</h3>
-                    <p className="mt-3 text-sm font-medium leading-7 text-[#D7E4FF]">A complete performance nutrition plan should be adjusted to your training, goals, food preferences, recovery and actual progress.</p>
-                    <a href="mailto:hello@elitepocketpt.com" className="mt-6 inline-flex h-12 items-center justify-center rounded-2xl bg-white px-5 text-sm font-bold text-[#1157D8] transition hover:bg-[#EAF2FF]">Work with Coach Mike</a>
                   </section>
                 </div>
               </div>

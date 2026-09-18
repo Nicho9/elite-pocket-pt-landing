@@ -7,6 +7,8 @@ import { createBrowserSupabaseClient } from "../../../../lib/supabaseClient";
 
 type WebinarRecord = Record<string, unknown>;
 
+const PERFORMANCE_NUTRITION_WEBINAR_SLUG = "an-introduction-to-performance-nutrition";
+
 type RegistrationResponse = {
   success?: unknown;
   error?: unknown;
@@ -41,6 +43,8 @@ export default function FreeWebinarRegistrationPage() {
   const [submitError, setSubmitError] = useState("");
 
   const slug = params.slug;
+  const isDevelopmentPreview =
+    process.env.NODE_ENV === "development" && slug === PERFORMANCE_NUTRITION_WEBINAR_SLUG;
 
   useEffect(() => {
     let isMounted = true;
@@ -49,12 +53,10 @@ export default function FreeWebinarRegistrationPage() {
       setIsLoading(true);
       setIsUnavailable(false);
 
-      const { data, error } = await supabase
-        .from("vip_webinars")
-        .select("*")
-        .eq("slug", slug)
-        .eq("is_published", true)
-        .single();
+      const webinarQuery = supabase.from("vip_webinars").select("*").eq("slug", slug);
+      const { data, error } = isDevelopmentPreview
+        ? await webinarQuery.single()
+        : await webinarQuery.eq("is_published", true).single();
 
       if (!isMounted) {
         return;
@@ -75,7 +77,7 @@ export default function FreeWebinarRegistrationPage() {
     return () => {
       isMounted = false;
     };
-  }, [slug, supabase]);
+  }, [isDevelopmentPreview, slug, supabase]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
