@@ -216,6 +216,8 @@ export default function VipWebinarsPage() {
               const title = readString(webinar, ["title", "name"]) || "VIP Webinar";
               const description = readString(webinar, ["description", "summary", "intro"]) || "VIP education session.";
               const thumbnailUrl = readString(webinar, ["thumbnail_url"]);
+              const accessTier = readString(webinar, ["access_tier"]).toLowerCase();
+              const isFreeWebinar = accessTier === "free";
               const releaseAt = readString(webinar, ["scheduled_release_at", "release_at"]);
               const durationMinutes = readNumber(webinar, ["duration_minutes", "duration"]);
               const locked = webinarIsLocked(webinar, now);
@@ -250,7 +252,7 @@ export default function VipWebinarsPage() {
                         }`}
                       >
                         <div className="flex h-20 w-20 items-center justify-center rounded-full border border-[#1157D8]/15 bg-white/70 shadow-[0_18px_60px_rgba(17,87,216,0.16)]">
-                          <span className="text-lg font-bold text-[#1157D8]">VIP</span>
+                          <span className="text-lg font-bold text-[#1157D8]">{isFreeWebinar ? "FREE" : "VIP"}</span>
                         </div>
                       </div>
                     )}
@@ -263,6 +265,9 @@ export default function VipWebinarsPage() {
                         }`}
                       >
                         {statusText}
+                      </span>
+                      <span className="rounded-full bg-white/85 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-[#1157D8] shadow-sm backdrop-blur">
+                        {isFreeWebinar ? "Free" : "VIP"}
                       </span>
                       {durationMinutes !== null && (
                         <span className="rounded-full bg-white/85 px-3 py-1 text-xs font-bold text-[#334155] shadow-sm backdrop-blur">
@@ -295,7 +300,7 @@ export default function VipWebinarsPage() {
                     <p className="mt-2 line-clamp-2 text-sm font-medium leading-6 text-[#475569]">{description}</p>
                     <div className="mt-5 flex items-center justify-between gap-4 text-xs font-bold uppercase tracking-[0.16em] text-[#64748B]">
                       <p>{releaseText}</p>
-                      {!locked && <p className="text-[#1157D8]">Watch</p>}
+                      {!locked && <p className="text-[#1157D8]">{isFreeWebinar ? "Start free" : "Watch"}</p>}
                     </div>
                   </div>
                 </>
@@ -310,7 +315,11 @@ export default function VipWebinarsPage() {
               }
 
               return (
-                <Link key={id} href={`/vip-webinars/${slug}`} className={cardClassName}>
+                <Link
+                  key={id}
+                  href={isFreeWebinar ? `/vip-webinars/${slug}/register` : `/vip-webinars/${slug}`}
+                  className={cardClassName}
+                >
                   {content}
                 </Link>
               );
