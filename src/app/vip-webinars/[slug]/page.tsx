@@ -659,6 +659,73 @@ export default function VipWebinarDetailPage() {
 
       const webinarId = webinarRecordId(webinarData);
 
+      if (!session && hasFreeWebinarRegistration) {
+        try {
+          const contentResponse = await fetch("/api/free-webinar-content", {
+            cache: "no-store",
+            credentials: "same-origin",
+          });
+          const contentPayload = (await contentResponse.json().catch(() => null)) as
+            | {
+                sections?: unknown;
+                contentBlocks?: unknown;
+                quizQuestions?: unknown;
+                error?: unknown;
+              }
+            | null;
+
+          if (!isMounted) {
+            return;
+          }
+
+          if (!contentResponse.ok) {
+            if (contentResponse.status === 401) {
+              router.replace(`/vip-webinars/${encodeURIComponent(slug)}/register`);
+              return;
+            }
+            setErrorMessage(
+              typeof contentPayload?.error === "string"
+                ? contentPayload.error
+                : "Webinar content is temporarily unavailable. Please refresh and try again.",
+            );
+            setIsLoading(false);
+            return;
+          }
+
+          const loadedSections = sortByPosition(
+            Array.isArray(contentPayload?.sections) ? (contentPayload.sections as DatabaseRecord[]) : [],
+          );
+          const sectionIds = loadedSections.map(sectionRecordId).filter(Boolean);
+
+          setWebinar(webinarData);
+          setSections(loadedSections);
+          setContentBlocks(
+            sortByPosition(
+              Array.isArray(contentPayload?.contentBlocks)
+                ? (contentPayload.contentBlocks as DatabaseRecord[])
+                : [],
+            ),
+          );
+          setQuizQuestions(
+            sortByPosition(
+              Array.isArray(contentPayload?.quizQuestions)
+                ? (contentPayload.quizQuestions as DatabaseRecord[])
+                : [],
+            ),
+          );
+          setCompletedSectionIds(readGuestProgress(slug, sectionIds));
+          setIsGuestRegistration(true);
+          setIsLoading(false);
+          return;
+        } catch {
+          if (isMounted) {
+            setErrorMessage("Webinar content is temporarily unavailable. Please refresh and try again.");
+            setIsLoading(false);
+          }
+          return;
+        }
+      }
+
       const sectionResult = await supabase
         .from("vip_webinar_sections")
         .select("*")
