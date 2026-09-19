@@ -1,11 +1,19 @@
 import { createClient } from "@supabase/supabase-js";
 
+import {
+  createFreeWebinarRegistrationSession,
+  freeWebinarSessionCookieOptions,
+  FREE_WEBINAR_SESSION_COOKIE,
+} from "../../../lib/freeWebinarRegistrationSession";
+
 const WEBINAR_SOURCE = "free_webinar_performance_nutrition";
+const PERFORMANCE_NUTRITION_WEBINAR_SLUG = "an-introduction-to-performance-nutrition";
 
 type WebinarRegistrationRequestBody = {
   name?: unknown;
   email?: unknown;
   newsletterConsent?: unknown;
+  slug?: unknown;
 };
 
 function jsonResponse(body: Record<string, unknown>, status: number) {
@@ -34,6 +42,7 @@ export async function POST(request: Request) {
 
     const name = typeof body.name === "string" ? body.name.trim() : "";
     const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+    const slug = typeof body.slug === "string" ? body.slug.trim() : "";
 
     if (!name) {
       return jsonResponse({ success: false, error: "Please enter your name." }, 400);
@@ -53,6 +62,10 @@ export async function POST(request: Request) {
       );
     }
 
+    if (slug !== PERFORMANCE_NUTRITION_WEBINAR_SLUG) {
+      return jsonResponse({ success: false, error: "This webinar is not available for registration." }, 400);
+    }
+
     const supabaseUrl = process.env.SB_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
     const serviceRoleKey = process.env.SB_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -65,6 +78,35 @@ export async function POST(request: Request) {
     }
 
     const supabase = createClient(supabaseUrl, serviceRoleKey);
+    const webinarQuery = supabase.from("vip_webinars").select("access_tier").eq("slug", slug);
+    const { data: webinar, error: webinarError } =
+      process.env.NODE_ENV === "development"
+        ? await webinarQuery.single()
+        : await webinarQuery.eq("is_published", true).single();
+
+    if (webinarError || !webinar || webinar.access_tier?.toLowerCase() !== "free") {
+      return jsonResponse({ success: false, error: "This webinar is not available for registration." }, 404);
+    }
+
+    const freeWebinarSession = createFreeWebinarRegistrationSession({ email, name, slug });
+
+    if (!freeWebinarSession) {
+      console.error("Webinar registration session is not configured.");
+      return jsonResponse(
+        { success: false, error: "We could not register you for the webinar. Please try again." },
+        500,
+      );
+    }
+
+    function successResponse(alreadyRegistered: boolean) {
+      const response = Response.json({ success: true, alreadyRegistered }, { status: 200 });
+      response.headers.append(
+        "Set-Cookie",
+        `${FREE_WEBINAR_SESSION_COOKIE}=${freeWebinarSession}; Path=${freeWebinarSessionCookieOptions.path}; Max-Age=${freeWebinarSessionCookieOptions.maxAge}; HttpOnly; SameSite=Lax${freeWebinarSessionCookieOptions.secure ? "; Secure" : ""}`,
+      );
+      return response;
+    }
+
     const { data: existingSignup, error: lookupError } = await supabase
       .from("email_list_signup")
       .select("id")
@@ -98,7 +140,7 @@ export async function POST(request: Request) {
         );
       }
 
-      return jsonResponse({ success: true, alreadyRegistered: true }, 200);
+      return successResponse(true);
     }
 
     const { error: insertError } = await supabase.from("email_list_signup").insert({
@@ -117,7 +159,7 @@ export async function POST(request: Request) {
       );
     }
 
-    return jsonResponse({ success: true, alreadyRegistered: false }, 200);
+    return successResponse(false);
   } catch (error) {
     console.error("Webinar registration API error:", error);
     return jsonResponse(

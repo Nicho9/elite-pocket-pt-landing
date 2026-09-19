@@ -99,7 +99,7 @@ export default function FreeWebinarRegistrationPage() {
       const response = await fetch("/api/webinar-registration", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, newsletterConsent }),
+        body: JSON.stringify({ name, email, newsletterConsent, slug }),
       });
       let result: RegistrationResponse = {};
 
@@ -233,7 +233,7 @@ export default function FreeWebinarRegistrationPage() {
               disabled={isSubmitting}
               className="mt-6 h-12 w-full rounded-2xl bg-[#1157D8] px-5 text-sm font-bold text-white shadow-[0_14px_32px_rgba(17,87,216,0.22)] transition hover:bg-[#0A39A8] disabled:cursor-not-allowed disabled:bg-[#9CA3AF] disabled:shadow-none"
             >
-              {isSubmitting ? "Registering..." : "Get free access"}
+              {isSubmitting ? "Opening your webinar..." : "Get free access"}
             </button>
           </form>
         </section>

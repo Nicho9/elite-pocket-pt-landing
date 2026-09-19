@@ -10,6 +10,7 @@ import type { PerformanceNutritionAssessmentResult } from "../../../lib/performa
 type DatabaseRecord = Record<string, unknown>;
 
 const PERFORMANCE_NUTRITION_WEBINAR_SLUG = "an-introduction-to-performance-nutrition";
+const FREE_WEBINAR_PROGRESS_STORAGE_PREFIX = "elite-pocket-pt:free-webinar-progress:";
 const automaticallyEmailedAssessmentKeys = new Set<string>();
 
 type PdfEmailStatus = "idle" | "sending" | "sent" | "failed";
@@ -132,6 +133,32 @@ function assessmentResultKey(result: PerformanceNutritionAssessmentResult) {
   }
 
   return (hash >>> 0).toString(36);
+}
+
+function readGuestProgress(slug: string, sectionIds: string[]) {
+  try {
+    const stored = window.localStorage.getItem(`${FREE_WEBINAR_PROGRESS_STORAGE_PREFIX}${slug}`);
+    const parsed: unknown = stored ? JSON.parse(stored) : null;
+
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed.filter((value): value is string => typeof value === "string" && sectionIds.includes(value));
+  } catch {
+    return [];
+  }
+}
+
+function saveGuestProgress(slug: string, completedSectionIds: string[]) {
+  try {
+    window.localStorage.setItem(
+      `${FREE_WEBINAR_PROGRESS_STORAGE_PREFIX}${slug}`,
+      JSON.stringify(completedSectionIds),
+    );
+  } catch {
+    // The webinar remains usable when browser storage is unavailable.
+  }
 }
 
 function dropdownItems(block: DatabaseRecord) {
@@ -529,6 +556,7 @@ export default function VipWebinarDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [accessDenied, setAccessDenied] = useState(false);
+  const [isGuestRegistration, setIsGuestRegistration] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showPerformanceNutritionAssessment, setShowPerformanceNutritionAssessment] = useState(false);
   const [assessmentInputs, setAssessmentInputs] = useState<AssessmentFormInputs>(initialAssessmentInputs);
@@ -551,6 +579,7 @@ export default function VipWebinarDetailPage() {
       setIsLoading(true);
       setErrorMessage("");
       setAccessDenied(false);
+      setIsGuestRegistration(false);
 
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
 
@@ -563,11 +592,18 @@ export default function VipWebinarDetailPage() {
       }
 
       const session = sessionData.session;
+      let hasFreeWebinarRegistration = false;
 
       if (!session) {
-        const redirectPath = `/vip-webinars/${encodeURIComponent(slug)}`;
-        router.replace(`/login?redirect=${encodeURIComponent(redirectPath)}`);
-        return;
+        try {
+          const accessResponse = await fetch(`/api/free-webinar-access?slug=${encodeURIComponent(slug)}`, {
+            cache: "no-store",
+          });
+          const accessPayload = (await accessResponse.json().catch(() => null)) as { valid?: unknown } | null;
+          hasFreeWebinarRegistration = accessResponse.ok && accessPayload?.valid === true;
+        } catch {
+          hasFreeWebinarRegistration = false;
+        }
       }
 
       const webinarQuery = supabase.from("vip_webinars").select("*").eq("slug", slug);
@@ -587,11 +623,21 @@ export default function VipWebinarDetailPage() {
 
       const accessTier = readString(webinarData, ["access_tier"]).toLowerCase();
 
+      if (!session && !hasFreeWebinarRegistration) {
+        if (accessTier === "free") {
+          router.replace(`/vip-webinars/${encodeURIComponent(slug)}/register`);
+        } else {
+          const redirectPath = `/vip-webinars/${encodeURIComponent(slug)}`;
+          router.replace(`/login?redirect=${encodeURIComponent(redirectPath)}`);
+        }
+        return;
+      }
+
       if (accessTier !== "free") {
         const { data: profileData, error: profileError } = await supabase
           .from("User")
           .select("role,subscription_tier,subscription_status")
-          .eq("id", session.user.id)
+          .eq("id", session!.user.id)
           .single();
 
         if (!isMounted) {
@@ -638,12 +684,14 @@ export default function VipWebinarDetailPage() {
         sectionIds.length > 0
           ? supabase.from("vip_webinar_quiz_questions").select("*").in("section_id", sectionIds)
           : Promise.resolve({ data: [], error: null }),
-        supabase
-          .from("vip_webinar_user_progress")
-          .select("*")
-          .eq("user_id", session.user.id)
-          .eq("webinar_id", webinarId)
-          .maybeSingle(),
+        session
+          ? supabase
+              .from("vip_webinar_user_progress")
+              .select("*")
+              .eq("user_id", session.user.id)
+              .eq("webinar_id", webinarId)
+              .maybeSingle()
+          : Promise.resolve({ data: null, error: null }),
       ]);
 
       if (!isMounted) {
@@ -673,8 +721,11 @@ export default function VipWebinarDetailPage() {
       setContentBlocks(sortByPosition(Array.isArray(blockResult.data) ? blockResult.data : []));
       setQuizQuestions(sortByPosition(Array.isArray(quizResult.data) ? quizResult.data : []));
       setCompletedSectionIds(
-        readArray(progressResult.data, ["completed_section_ids", "completed_sections", "section_ids"]),
+        session
+          ? readArray(progressResult.data, ["completed_section_ids", "completed_sections", "section_ids"])
+          : readGuestProgress(slug, sectionIds),
       );
+      setIsGuestRegistration(!session && hasFreeWebinarRegistration);
       setIsLoading(false);
     }
 
@@ -692,6 +743,11 @@ export default function VipWebinarDetailPage() {
   const webinarId = webinar ? webinarRecordId(webinar) : "";
 
   async function persistProgress(nextCompletedIds: string[]) {
+    if (isGuestRegistration) {
+      saveGuestProgress(slug, nextCompletedIds);
+      return;
+    }
+
     const { data: sessionData } = await supabase.auth.getSession();
     const userId = sessionData.session?.user.id;
 
@@ -859,16 +915,13 @@ export default function VipWebinarDetailPage() {
         const { data: sessionData } = await supabase.auth.getSession();
         const accessToken = sessionData.session?.access_token;
 
-        if (!accessToken) {
-          throw new Error("Missing authenticated session.");
-        }
-
         const response = await fetch("/api/performance-nutrition-pdf", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: "Bearer " + accessToken,
+            ...(accessToken ? { Authorization: "Bearer " + accessToken } : {}),
           },
+          credentials: "same-origin",
           body: JSON.stringify({ assessmentResult: result }),
         });
         const payload = (await response.json().catch(() => null)) as

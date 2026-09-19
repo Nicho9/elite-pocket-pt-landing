@@ -5,8 +5,11 @@ import { Resend } from "resend";
 
 import { generatePerformanceNutritionPdfBytes, PDF_FILENAME } from "../../../lib/performanceNutritionPdf";
 import type { PerformanceNutritionAssessmentResult } from "../../../lib/performanceNutritionAssessment";
+import { readFreeWebinarRegistrationSession } from "../../../lib/freeWebinarRegistrationSession";
 
 export const runtime = "nodejs";
+
+const PERFORMANCE_NUTRITION_WEBINAR_SLUG = "an-introduction-to-performance-nutrition";
 
 type RequestBody = { assessmentResult?: unknown };
 
@@ -100,11 +103,6 @@ export async function POST(request: Request) {
     return jsonResponse({ success: false, error: "We couldn't email your PDF." }, 500);
   }
 
-  const token = readBearerToken(request);
-  if (!token) {
-    return jsonResponse({ success: false, error: "Your session could not be verified." }, 401);
-  }
-
   let body: RequestBody;
   try {
     body = await request.json();
@@ -117,10 +115,26 @@ export async function POST(request: Request) {
   }
 
   const supabase = createClient(supabaseUrl, supabaseAnonKey);
-  const { data: userData, error: userError } = await supabase.auth.getUser(token);
-  const recipientEmail = userData.user?.email?.trim().toLowerCase() || "";
+  const token = readBearerToken(request);
+  let recipientEmail = "";
 
-  if (userError || !recipientEmail) {
+  if (token) {
+    const { data: userData, error: userError } = await supabase.auth.getUser(token);
+
+    if (!userError) {
+      recipientEmail = userData.user?.email?.trim().toLowerCase() || "";
+    }
+  }
+
+  if (!recipientEmail) {
+    const freeWebinarSession = readFreeWebinarRegistrationSession(request);
+
+    if (freeWebinarSession?.slug === PERFORMANCE_NUTRITION_WEBINAR_SLUG) {
+      recipientEmail = freeWebinarSession.email;
+    }
+  }
+
+  if (!recipientEmail) {
     console.error("Performance nutrition PDF email authentication failed.");
     return jsonResponse({ success: false, error: "Your session could not be verified." }, 401);
   }
