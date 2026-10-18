@@ -3,17 +3,20 @@ import Stripe from "stripe";
 export const runtime = "nodejs";
 
 type CheckoutPlan = "full_app" | "vip";
+type BillingInterval = "monthly" | "annual";
 
 type CheckoutRequestBody = {
   name?: unknown;
   email?: unknown;
   password?: unknown;
   plan?: unknown;
+  billingInterval?: unknown;
 };
 
 type CheckoutEnv = {
   stripeSecretKey: string;
   stripeFullAppPriceId: string;
+  stripeFullAppAnnualPriceId?: string;
   stripeVipPriceId: string;
   siteUrl: string;
   supabaseUrl: string;
@@ -39,6 +42,7 @@ function jsonResponse(body: Record<string, unknown>, status: number) {
 function getRequiredEnv(): CheckoutEnv | null {
   const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
   const stripeFullAppPriceId = process.env.STRIPE_FULL_APP_PRICE_ID;
+  const stripeFullAppAnnualPriceId = process.env.STRIPE_FULL_APP_ANNUAL_PRICE_ID;
   const stripeVipPriceId = process.env.STRIPE_VIP_PRICE_ID;
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
   const supabaseUrl = process.env.SB_URL;
@@ -58,6 +62,7 @@ function getRequiredEnv(): CheckoutEnv | null {
   return {
     stripeSecretKey,
     stripeFullAppPriceId,
+    stripeFullAppAnnualPriceId,
     stripeVipPriceId,
     siteUrl: siteUrl.replace(/\/+$/, ""),
     supabaseUrl: supabaseUrl.replace(/\/+$/, ""),
@@ -71,6 +76,10 @@ function getString(value: unknown) {
 
 function isCheckoutPlan(value: unknown): value is CheckoutPlan {
   return value === "full_app" || value === "vip";
+}
+
+function isBillingInterval(value: unknown): value is BillingInterval {
+  return value === "monthly" || value === "annual";
 }
 
 function getSupabaseError(payload: WebsiteSignupResponse | null) {
@@ -159,6 +168,36 @@ export async function POST(request: Request) {
     return jsonResponse({ success: false, error: "Plan must be full_app or vip." }, 400);
   }
 
+  // Only an omitted interval defaults to monthly; invalid values never fall back.
+  const billingInterval = body.billingInterval === undefined ? "monthly" : body.billingInterval;
+
+  if (!isBillingInterval(billingInterval)) {
+    return jsonResponse(
+      { success: false, error: "Billing interval must be monthly or annual." },
+      400,
+    );
+  }
+
+  if (plan === "vip" && billingInterval !== "monthly") {
+    return jsonResponse(
+      { success: false, error: "VIP Coaching supports monthly billing only." },
+      400,
+    );
+  }
+
+  const priceId = plan === "vip"
+    ? env.stripeVipPriceId
+    : billingInterval === "annual"
+      ? env.stripeFullAppAnnualPriceId
+      : env.stripeFullAppPriceId;
+
+  if (!priceId) {
+    return jsonResponse(
+      { success: false, error: "Selected subscription is not configured." },
+      500,
+    );
+  }
+
   try {
     const signupResponse = await fetch(
       `${env.supabaseUrl}/functions/v1/create-user-from-website`,
@@ -201,7 +240,6 @@ export async function POST(request: Request) {
     }
 
     const stripe = new Stripe(env.stripeSecretKey);
-    const priceId = plan === "vip" ? env.stripeVipPriceId : env.stripeFullAppPriceId;
     const metadata: Stripe.MetadataParam = {
       user_id: userId,
       plan,

@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { eliteBandPricing } from "@/lib/eliteBandPricing";
 
 const iosAppStoreHref = "https://apps.apple.com/ae/app/elite-pocket-pt/id6761879840";
 const appleFreeTrialHref =
@@ -110,7 +111,13 @@ const coachMikeImages = [
 ];
 
 type CheckoutPlan = "full_app" | "vip";
+type BillingInterval = "monthly" | "annual";
 type CheckoutStatus = "idle" | "loading" | "error";
+
+const fullAppBillingOptions = {
+  monthly: { label: "Monthly", price: "$29", period: "month" },
+  annual: { label: "Annual", price: "$199", period: "year" },
+} as const;
 
 export default function Home() {
   const heroVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -118,6 +125,8 @@ export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [selectedCheckoutPlan, setSelectedCheckoutPlan] = useState<CheckoutPlan | null>(null);
+  const [fullAppBillingInterval, setFullAppBillingInterval] = useState<BillingInterval>("monthly");
+  const [checkoutBillingInterval, setCheckoutBillingInterval] = useState<BillingInterval>("monthly");
   const [checkoutName, setCheckoutName] = useState("");
   const [checkoutEmail, setCheckoutEmail] = useState("");
   const [checkoutPassword, setCheckoutPassword] = useState("");
@@ -151,6 +160,7 @@ export default function Home() {
 
   function openCheckout(plan: CheckoutPlan) {
     setSelectedCheckoutPlan(plan);
+    setCheckoutBillingInterval(plan === "full_app" ? fullAppBillingInterval : "monthly");
     setCheckoutStatus("idle");
     setCheckoutErrorMessage("");
   }
@@ -217,6 +227,7 @@ export default function Home() {
           email: trimmedEmail,
           password: checkoutPassword,
           plan: selectedCheckoutPlan,
+          ...(selectedCheckoutPlan === "full_app" ? { billingInterval: checkoutBillingInterval } : {}),
         }),
       });
 
@@ -607,6 +618,13 @@ export default function Home() {
                   <p className="max-w-xl text-base font-medium leading-7 text-[#D7E4FF] sm:text-lg sm:leading-8">
                     Elite Band is being built to connect your real-world physiology directly to Elite Pocket PT — turning recovery, training and health data into information the system can use to understand what should happen next.
                   </p>
+                  <div className="mt-5 space-y-2 text-base font-semibold leading-7 text-[#D7E4FF]">
+                    <p>{eliteBandPricing.package}</p>
+                    <p>{eliteBandPricing.existingSubscriber}</p>
+                    <p className="text-sm font-medium leading-6 text-[#9BC4FF]">
+                      {eliteBandPricing.terms}
+                    </p>
+                  </div>
                   <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-3">
                     <span className="text-sm font-bold uppercase tracking-[0.16em] text-[#9BC4FF]">
                       Unlock the full system.
@@ -1161,7 +1179,7 @@ export default function Home() {
             {[
               {
                 title: "Full App Access",
-                price: "$39",
+                price: fullAppBillingOptions[fullAppBillingInterval].price,
                 smallText:
                   "Complete access to the integrated Elite Pocket PT performance system: training, nutrition, health, recovery, mobility, progress, coaching feedback and community in one place.",
                 includes: [
@@ -1230,11 +1248,36 @@ export default function Home() {
                       <>
                         {" "}
                         <span className="text-2xl font-semibold text-[#4B5563]">
-                          / month
+                          / {plan.checkoutPlan === "full_app" ? fullAppBillingOptions[fullAppBillingInterval].period : "month"}
                         </span>
                       </>
                     )}
                   </p>
+                  {plan.checkoutPlan === "full_app" && (
+                    <fieldset className="mt-5">
+                      <legend className="sr-only">Full App Access billing period</legend>
+                      <div className="grid grid-cols-2 gap-2">
+                        {(["monthly", "annual"] as const).map((interval) => (
+                          <label key={interval} className="min-w-0 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="full-app-billing-interval"
+                              value={interval}
+                              checked={fullAppBillingInterval === interval}
+                              onChange={() => setFullAppBillingInterval(interval)}
+                              className="peer sr-only"
+                            />
+                            <span className="flex min-h-12 h-full flex-col justify-center rounded-xl border border-[#E5E7EB] px-2 py-3 text-center text-[#4B5563] transition peer-checked:border-[#1157D8] peer-checked:bg-[#EEF5FF] peer-checked:text-[#1157D8] peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-[#1157D8] peer-focus-visible:ring-offset-2">
+                              <span className="text-sm font-bold">{fullAppBillingOptions[interval].label}</span>
+                              <span className="mt-1 text-xs font-semibold leading-5">
+                                {fullAppBillingOptions[interval].price} USD/{fullAppBillingOptions[interval].period}
+                              </span>
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    </fieldset>
+                  )}
                   <p className="mt-3 text-sm font-medium leading-6 text-[#6B7280]">
                     {plan.smallText}
                   </p>
@@ -1334,6 +1377,11 @@ export default function Home() {
                 <p className="mt-3 text-sm font-medium leading-6 text-white/68 sm:text-base">
                   Set up your account, then continue to secure Stripe checkout.
                 </p>
+                {selectedCheckoutPlan === "full_app" && (
+                  <p className="mt-3 text-base font-bold text-[#9BC4FF]">
+                    {fullAppBillingOptions[checkoutBillingInterval].label} subscription — {fullAppBillingOptions[checkoutBillingInterval].price} USD/{fullAppBillingOptions[checkoutBillingInterval].period}
+                  </p>
+                )}
               </div>
 
               <button

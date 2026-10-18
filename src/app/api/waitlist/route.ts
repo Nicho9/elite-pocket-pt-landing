@@ -134,9 +134,9 @@ export async function POST(request: Request) {
                               <tr>
                                 <td style="padding:32px 28px;color:#111827;">
                                   <p style="margin:0 0 18px;color:#111827;font-size:16px;line-height:1.75;">Hi ${safeName},</p>
-                                  <p style="margin:0 0 18px;color:#374151;font-size:16px;line-height:1.75;">You've secured limited early access to Elite Pocket PT, including the 50% lifetime launch offer.</p>
+                                  <p style="margin:0 0 18px;color:#374151;font-size:16px;line-height:1.75;">Thank you for registering your interest in Elite Pocket PT.</p>
                                   <p style="margin:0 0 18px;color:#374151;font-size:16px;line-height:1.75;">Inside, you'll get a complete training system built around personalised workouts, structured meal plans, daily mobility, coaching feedback, progress tracking and community support.</p>
-                                  <p style="margin:0;color:#374151;font-size:16px;line-height:1.75;">We'll send your next steps before launch so you can claim your offer and start with the right system from day one.</p>
+                                  <p style="margin:0;color:#374151;font-size:16px;line-height:1.75;">We'll keep you updated on app access and availability so you can start with the right system.</p>
                                 </td>
                               </tr>
                             </table>
